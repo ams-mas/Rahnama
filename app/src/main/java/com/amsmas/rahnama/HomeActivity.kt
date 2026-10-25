@@ -5,6 +5,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -38,11 +39,11 @@ private data class RahnamaNav(val title: String, val icon: androidx.compose.ui.g
 @Composable
 private fun RahnamaWorkingApp() {
     val context = LocalContext.current
-    val dao = remember { RahnamaDatabase.getInstance(context).dao() }
+    val viewModel: RahnamaViewModel = viewModel()
     val scope = rememberCoroutineScope()
-    val people by dao.observePersons().collectAsState(initial = emptyList())
-    val properties by dao.observeProperties().collectAsState(initial = emptyList())
-    val requests by dao.observeActiveRequests().collectAsState(initial = emptyList())
+    val people by viewModel.people.collectAsState(initial = emptyList())
+    val properties by viewModel.properties.collectAsState(initial = emptyList())
+    val requests by viewModel.activeRequests.collectAsState(initial = emptyList())
     var tab by remember { mutableIntStateOf(0) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
@@ -176,7 +177,7 @@ private fun RahnamaWorkingApp() {
                         alert = validationError
                     } else scope.launch {
                         try {
-                            val existingOwner = dao.findPersonByPhone(v[1].trim())
+                            val existingOwner = viewModel.findPersonByPhone(v[1].trim())
                             val ownerId = existingOwner?.id ?: dao.insertPerson(PersonEntity(
                                 fullName = v[0].trim(), phoneNumber = v[1].trim(),
                                 alternatePhone = v[2].trim().ifBlank { null },
