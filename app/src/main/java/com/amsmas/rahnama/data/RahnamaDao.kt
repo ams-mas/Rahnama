@@ -18,6 +18,12 @@ interface RahnamaDao {
     @Update
     suspend fun updatePerson(person: PersonEntity)
 
+    @Query("UPDATE properties SET status = :status WHERE id = :propertyId")
+    suspend fun updatePropertyStatus(propertyId: Long, status: String)
+
+    @Query("UPDATE client_requests SET requestStatus = :status WHERE id = :requestId")
+    suspend fun updateRequestStatus(requestId: Long, status: String)
+
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertRequest(request: ClientRequestEntity): Long
 
