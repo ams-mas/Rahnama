@@ -1423,6 +1423,7 @@ private fun validateSimpleRequestForm(v: List<String>): String? {
     }
 }
 
+@Composable
 fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
     val values = remember(title) { mutableStateListOf<String>().also { state -> fields.forEach { state.add("") } } }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title, fontWeight = FontWeight.Bold) },
