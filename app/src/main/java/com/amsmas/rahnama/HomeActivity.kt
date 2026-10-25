@@ -442,6 +442,7 @@ private fun HomePeople(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PersonDetailDialog(
     person: PersonEntity,
@@ -454,85 +455,132 @@ private fun PersonDetailDialog(
     onEdit: (PersonEntity) -> Unit
 ) {
     var selectedTab by remember(person.id) { mutableIntStateOf(0) }
-    AlertDialog(
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text("پروفایل شخص", fontWeight = FontWeight.Bold) },
-        text = {
-            Column(
-                Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(person.fullName, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary)
-                Text("شماره اصلی: " + person.phoneNumber)
-                person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: " + it) }
-                person.province?.takeIf { it.isNotBlank() }?.let { Text("ولایت: " + it) }
-                person.city?.takeIf { it.isNotBlank() }?.let { Text("شهر/ناحیه: " + it) }
-                person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس دقیق: " + it) }
-                person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: " + it) }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    OutlinedButton(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Call, contentDescription = null)
-                        Spacer(Modifier.width(4.dp)); Text("تماس")
+        properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(0.96f).widthIn(max = 560.dp).heightIn(max = 300.dp, maxHeight = 760.dp),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 6.dp
+        ) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text("پروفایل شخص", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(person.fullName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                        Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelLarge)
                     }
-                    OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Sms, contentDescription = null)
-                        Spacer(Modifier.width(4.dp)); Text("پیامک")
+                    IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "بستن پروفایل") }
+                }
+                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                )) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                            Icon(Icons.Default.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                            Spacer(Modifier.width(8.dp))
+                            Column(Modifier.weight(1f)) {
+                                Text("شماره اصلی", style = MaterialTheme.typography.labelMedium)
+                                Text(person.phoneNumber, style = MaterialTheme.typography.bodyLarge)
+                            }
+                        }
+                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
+                            HorizontalDivider()
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("شماره دوم", style = MaterialTheme.typography.labelMedium)
+                                    Text(it, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
+                        val location = listOfNotNull(person.province, person.city).filter { it.isNotBlank() }.joinToString("، ")
+                        if (location.isNotBlank()) {
+                            HorizontalDivider()
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
+                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                Spacer(Modifier.width(8.dp))
+                                Column(Modifier.weight(1f)) {
+                                    Text("موقعیت", style = MaterialTheme.typography.labelMedium)
+                                    Text(location)
+                                }
+                            }
+                        }
+                        person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس دقیق: $it", style = MaterialTheme.typography.bodyMedium) }
+                        person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: $it", style = MaterialTheme.typography.bodyMedium) }
                     }
-                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.weight(1f)) {
+                }
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        Button(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Call, contentDescription = null)
+                            Spacer(Modifier.width(6.dp)); Text("تماس")
+                        }
+                        OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Sms, contentDescription = null)
+                            Spacer(Modifier.width(6.dp)); Text("پیامک")
+                        }
+                    }
+                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.fillMaxWidth()) {
                         Icon(Icons.Default.Chat, contentDescription = null)
-                        Spacer(Modifier.width(4.dp)); Text("واتساپ")
+                        Spacer(Modifier.width(8.dp)); Text("گفتگو در واتساپ")
+                    }
+                    OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.Edit, contentDescription = null)
+                        Spacer(Modifier.width(8.dp)); Text("ویرایش اطلاعات شخص")
                     }
                 }
-                OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Edit, contentDescription = null)
-                    Spacer(Modifier.width(6.dp)); Text("ویرایش اطلاعات شخص")
-                }
-
                 HorizontalDivider()
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
                         text = { Text("املاک (${properties.size})") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                        text = { Text("تقاضاها (${requests.size})") })
+                        text = { Text("سوابق تقاضا (${requests.size})") })
                 }
-                if (selectedTab == 0) {
-                    if (properties.isEmpty()) Text("ملکی برای این شخص ثبت نشده است.")
-                    properties.forEach { property ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(property.propertyCode, fontWeight = FontWeight.SemiBold)
-                                Text(homePropertyType(property.propertyType) + " • " + homeListingType(property.listingType))
-                                Text(property.province + "، " + property.city)
-                                property.priceAmount?.let { Text("قیمت/مبلغ گروی: " + it.toLong() + " AFN") }
-                                property.monthlyRent?.let { Text("کرایه ماهانه: " + it.toLong() + " AFN") }
-                                Text("وضعیت: " + homeStatusDisplay(property.status))
+                Column(Modifier.fillMaxWidth().weight(1f, fill = true).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    if (selectedTab == 0) {
+                        if (properties.isEmpty()) {
+                            Text("ملکی برای این شخص ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else properties.forEach { property ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(property.propertyCode, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                    Text(homePropertyType(property.propertyType) + " • " + homeListingType(property.listingType), fontWeight = FontWeight.SemiBold)
+                                    Text(listOfNotNull(property.province, property.city, property.district).filter { it.isNotBlank() }.joinToString("، "))
+                                    property.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: $it") }
+                                    property.priceAmount?.let { Text("قیمت/مبلغ گروی: " + it.toLong() + " افغانی") }
+                                    property.monthlyRent?.let { Text("کرایه ماهانه: " + it.toLong() + " افغانی") }
+                                    Text("وضعیت: " + homeStatusDisplay(property.status))
+                                }
                             }
                         }
-                    }
-                } else {
-                    if (requests.isEmpty()) Text("تقاضایی برای این شخص ثبت نشده است.")
-                    requests.forEach { request ->
-                        Card(Modifier.fillMaxWidth()) {
-                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType),
-                                    fontWeight = FontWeight.SemiBold)
-                                Text(request.province + (request.city?.let { "، " + it } ?: ""))
-                                if (request.budgetMin != null || request.budgetMax != null) {
-                                    Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " +
-                                        (request.budgetMax?.toLong()?.toString() ?: "—") + " AFN")
+                    } else {
+                        if (requests.isEmpty()) {
+                            Text("هیچ تقاضایی برای این شخص ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        } else requests.forEach { request ->
+                            Card(Modifier.fillMaxWidth()) {
+                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType), fontWeight = FontWeight.Bold)
+                                    Text(listOfNotNull(request.province, request.city, request.district).filter { it.isNotBlank() }.joinToString("، "))
+                                    if (request.budgetMin != null || request.budgetMax != null) {
+                                        Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " +
+                                            (request.budgetMax?.toLong()?.toString() ?: "—") + " افغانی")
+                                    }
+                                    request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: " + it.toLong() + " افغانی") }
+                                    Text("وضعیت تقاضا: " + if (request.requestStatus == "active") "فعال" else request.requestStatus)
                                 }
-                                request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: " + it.toLong() + " AFN") }
-                                Text("وضعیت تقاضا: " + if (request.requestStatus == "active") "فعال" else request.requestStatus)
                             }
                         }
                     }
                 }
             }
-        },
-        confirmButton = { TextButton(onClick = onDismiss) { Text("بستن") } }
-    )
+        }
+    }
 }
 
 @Composable
