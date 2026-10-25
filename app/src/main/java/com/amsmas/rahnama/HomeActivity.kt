@@ -133,7 +133,7 @@ private fun RahnamaWorkingApp() {
                 onAdd = { form = "person" },
                 onSelect = { selectedPerson = it }
             )
-            4 -> HomeMatching(Modifier.padding(padding), properties, requests)
+            4 -> HomeMatching(Modifier.padding(padding), properties, requests, people)
             else -> HomeSettings(Modifier.padding(padding))
         }
     }
@@ -434,22 +434,75 @@ private fun HomeSettings(modifier: Modifier) {
 }
 
 @Composable
-private fun HomeMatching(modifier: Modifier, properties: List<PropertyEntity>, requests: List<ClientRequestEntity>) {
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        item { Text("جستجو و تطبیق هوشمند", fontSize = 22.sp, fontWeight = FontWeight.Bold); Text("تطبیق نوع معامله، ملک، موقعیت و بودجه") }
-        if (requests.isEmpty()) item { Text("ابتدا یک تقاضای فعال ثبت کنید.") }
+private fun HomeMatching(
+    modifier: Modifier,
+    properties: List<PropertyEntity>,
+    requests: List<ClientRequestEntity>,
+    people: List<PersonEntity>
+) {
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            Text("تطبیق هوشمند املاک", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+            Text("املاک مناسب هر تقاضا بر اساس میزان مطابقت مرتب شده‌اند.")
+        }
+        if (requests.isEmpty()) {
+            item { Text("برای شروع، یک تقاضای فعال ثبت کنید.") }
+        }
         items(requests, key = { it.id }) { request ->
             val matches = MatchingEngine.matchPropertiesToRequest(request, properties)
-            Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(homeMapDisplayProperty(request.propertyType) + " • " + homeMapDisplayListing(request.listingType), fontWeight = FontWeight.Bold)
-                Text(request.province + (request.city?.let { "، " + it } ?: ""))
-                if (matches.isEmpty()) Text("ملک مطابق پیدا نشد.")
-                else matches.take(5).forEach { match ->
-                    HorizontalDivider()
-                    Text(match.property.propertyCode + " — " + match.score + "%", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
-                    Text(match.property.city + " • " + (match.property.priceAmount?.toLong()?.toString() ?: "قیمت نامشخص"))
+            Card(Modifier.fillMaxWidth()) {
+                Column(
+                    Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        homeMapDisplayProperty(request.propertyType) + " • " + homeMapDisplayListing(request.listingType),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp
+                    )
+                    Text("مشتری: " + (people.firstOrNull { it.id == request.clientId }?.fullName ?: "نامشخص"))
+                    Text("موقعیت: " + request.province + (request.city?.let { "، " + it } ?: ""))
+                    Text("نتیجه: " + matches.size + " ملک مناسب", color = MaterialTheme.colorScheme.primary)
+                    if (matches.isEmpty()) {
+                        Text("فعلاً ملک مطابق پیدا نشد. مشخصات ملک‌ها یا تقاضا را بررسی کنید.")
+                    } else {
+                        matches.take(5).forEachIndexed { index, match ->
+                            val property = match.property
+                            val owner = people.firstOrNull { it.id == property.ownerId }
+                            HorizontalDivider()
+                            Text(
+                                (index + 1).toString() + ". " + property.propertyCode + " — " + match.score + "%",
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(homeMapDisplayProperty(property.propertyType) + " • " + homeMapDisplayListing(property.listingType))
+                            Text("موقعیت: " + property.province + "، " + property.city +
+                                (property.district?.let { "، " + it } ?: ""))
+                            when (property.listingType) {
+                                "rent" -> Text("کرایه ماهانه: " + (property.monthlyRent?.toLong()?.toString() ?: "ثبت نشده") + " افغانی")
+                                "growy" -> {
+                                    Text("مبلغ گروی: " + (property.priceAmount?.toLong()?.toString() ?: "ثبت نشده") + " افغانی")
+                                    property.monthlyRent?.let { Text("کرایه ماهانه: " + it.toLong() + " افغانی") }
+                                }
+                                else -> Text("قیمت فروش: " + (property.priceAmount?.toLong()?.toString() ?: "ثبت نشده") + " افغانی")
+                            }
+                            property.bedrooms?.let { Text("تعداد اتاق: " + it) }
+                            if (owner != null) {
+                                Text("مالک: " + owner.fullName)
+                                Text("شماره تماس مالک: " + owner.phoneNumber)
+                            }
+                            Text("دلایل تطبیق: " + match.reasons.joinToString("، "), style = MaterialTheme.typography.bodySmall)
+                        }
+                        if (matches.size > 5) {
+                            Text("۵ نتیجهٔ برتر از " + matches.size + " مورد نمایش داده شد.")
+                        }
+                    }
                 }
-            } }
+            }
         }
     }
 }
