@@ -23,6 +23,9 @@ interface RahnamaDao {
     @Query("SELECT * FROM persons WHERE phoneNumber = :phone LIMIT 1")
     suspend fun findPersonByPhone(phone: String): PersonEntity?
 
+    @Query("UPDATE persons SET alternatePhone = :alternatePhone, address = COALESCE(:address, address) WHERE id = :personId")
+    suspend fun updatePersonContactDetails(personId: Long, alternatePhone: String?, address: String?)
+
     @Query("SELECT * FROM properties ORDER BY createdAt DESC")
     fun observeProperties(): Flow<List<PropertyEntity>>
 
