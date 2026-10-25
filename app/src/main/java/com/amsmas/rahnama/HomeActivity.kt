@@ -119,7 +119,7 @@ private fun RahnamaWorkingApp() {
         "شماره موقعیت روی نقشه (اختیاری)", "آدرس مورد نظر: خانه/زمین/هرکدام",
         "شماره تماس دوم مشتری"
     )
-    val personFields = listOf("نام کامل *", "شماره تماس *", "شماره دوم", "ولایت", "شهر", "آدرس", "نقش: مالک/خریدار/مستأجر/متقاضی گروی")
+    val personFields = listOf("نام کامل *", "شماره تماس *", "شماره دوم", "ولایت", "شهر", "آدرس", "نقش: فروشنده/خریدار/متقاضی مستأجر/متقاضی گروی/متقاضی کرایی")
 
     Scaffold(
         topBar = { TopAppBar(title = {}, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)) },
@@ -733,7 +733,7 @@ private fun PersonEntryDialog(
     onDismiss: () -> Unit,
     onSave: (PersonEntity) -> Unit
 ) {
-    val roles = listOf("مالک", "خریدار", "مستأجر", "متقاضی گروی", "متقاضی", "سایر")
+    val roles = listOf("فروشنده", "خریدار", "متقاضی مستأجر", "متقاضی گروی", "متقاضی کرایی")
     val values = remember(initialPerson?.id) {
         mutableStateListOf(
             initialPerson?.fullName.orEmpty(),
@@ -775,12 +775,12 @@ private fun PersonEntryDialog(
                     error = "نام و شماره تلفن اصلی الزامی است."
                 } else {
                     val mappedRole = when (role) {
-                        "مالک" -> "owner"
+                        "فروشنده" -> "seller"
                         "خریدار" -> "buyer"
-                        "مستأجر" -> "tenant"
+                        "متقاضی مستأجر" -> "tenant_applicant"
                         "متقاضی گروی" -> "growy_applicant"
-                        "متقاضی" -> "applicant"
-                        else -> "other"
+                        "متقاضی کرایی" -> "rent_applicant"
+                        else -> "seller"
                     }
                     onSave(PersonEntity(
                         id = initialPerson?.id ?: 0,
@@ -834,12 +834,12 @@ private fun openWhatsApp(context: android.content.Context, phone: String, onErro
 }
 
 private fun homeRoleDisplay(role: String): String = when (role) {
-    "owner" -> "مالک"
+    "seller", "owner" -> "فروشنده"
     "buyer" -> "خریدار"
-    "tenant" -> "مستأجر"
+    "tenant_applicant", "tenant" -> "متقاضی مستأجر"
     "growy_applicant" -> "متقاضی گروی"
-    "applicant" -> "متقاضی"
-    else -> "سایر"
+    "rent_applicant", "applicant" -> "متقاضی کرایی"
+    else -> "فروشنده"
 }
 
 private fun homeGrowyDisplay(value: String): String = when (value) {
@@ -1229,7 +1229,7 @@ private fun homeYesNoText(value: Boolean) = if (value) "دارد" else "ندار
 private fun homeMapListing(value: String) = when { value.contains("کرایه") || value.contains("کرایی") -> "rent"; value.contains("گروی") -> "growy"; else -> "sale" }
 private fun homeMapGrowy(value: String) = when { value.contains("سنت") -> "sunni"; value.contains("تشیع") || value.contains("شیعه") -> "shia"; else -> "unspecified" }
 private fun homeMapRequestGrowy(value: String) = when { value.contains("هرکدام") -> "either"; value.contains("سنت") -> "sunni"; value.contains("تشیع") || value.contains("شیعه") -> "shia"; else -> "unspecified" }
-private fun homeMapRole(value: String) = when { value.contains("مالک") -> "owner"; value.contains("خریدار") -> "buyer"; value.contains("مستأجر") || value.contains("مستاجر") -> "tenant"; value.contains("گروی") -> "growy_applicant"; else -> "other" }
+private fun homeMapRole(value: String) = when { value.contains("فروشنده") || value.contains("مالک") -> "seller"; value.contains("خریدار") -> "buyer"; value.contains("مستأجر") || value.contains("مستاجر") -> "tenant_applicant"; value.contains("گروی") -> "growy_applicant"; value.contains("کرایی") || value.contains("کرایه") -> "rent_applicant"; else -> "seller" }
 private fun homePropertyType(value: String) = when (value) { "house" -> "خانه"; "building" -> "تعمیر"; "apartment" -> "آپارتمان"; "land" -> "زمین"; "shop" -> "دکان"; "market" -> "مارکیت"; "garden" -> "باغ"; else -> "سایر" }
 private fun homeListingType(value: String) = when (value) { "rent" -> "کرایی"; "growy" -> "گروی"; else -> "فروشی" }
 private fun homeMapDisplayProperty(value: String) = homePropertyType(value)
