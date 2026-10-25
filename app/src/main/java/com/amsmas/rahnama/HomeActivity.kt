@@ -429,7 +429,7 @@ private fun HomeDropdownField(label: String, selected: String, options: List<Str
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .menuAnchor()
                 .fillMaxWidth(),
             singleLine = true
         )
