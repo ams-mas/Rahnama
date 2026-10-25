@@ -160,7 +160,12 @@ private fun RahnamaWorkingApp() {
                             if (existingOwner != null && v[2].isNotBlank()) {
                                 dao.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
                             }
-                            val propertyCode = PropertyCodeGenerator.candidate(dao.countProperties() + 1, homeJalaliYear())
+                            var sequence = dao.countProperties() + 1
+                            var propertyCode = PropertyCodeGenerator.candidate(sequence, homeJalaliYear())
+                            while (dao.propertyCodeExists(propertyCode)) {
+                                sequence++
+                                propertyCode = PropertyCodeGenerator.candidate(sequence, homeJalaliYear())
+                            }
                             dao.insertProperty(PropertyEntity(
                                 propertyCode = propertyCode, ownerId = ownerId,
                                 propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
