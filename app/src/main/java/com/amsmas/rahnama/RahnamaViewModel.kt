@@ -22,24 +22,35 @@ class RahnamaViewModel(application: Application) : AndroidViewModel(application)
     val people: Flow<List<PersonEntity>> = repository.people
     val properties: Flow<List<PropertyEntity>> = repository.properties
     val activeRequests: Flow<List<ClientRequestEntity>> = repository.activeRequests
+    val allRequests: Flow<List<ClientRequestEntity>> = repository.allRequests
 
     fun savePerson(person: PersonEntity, onComplete: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
-            runCatching { repository.insertPerson(person) }
-                .fold(
-                    onSuccess = { onComplete(Result.success(Unit)) },
-                    onFailure = { onComplete(Result.failure(it)) }
-                )
+            try {
+                val phone = person.phoneNumber.trim()
+                if (repository.findPersonByPhone(phone) != null) {
+                    throw IllegalArgumentException("این شماره تلفن قبلاً برای شخص دیگری ثبت شده است.")
+                }
+                repository.insertPerson(person.copy(phoneNumber = phone))
+                onComplete(Result.success(Unit))
+            } catch (error: Exception) {
+                onComplete(Result.failure(error))
+            }
         }
     }
 
     fun updatePerson(person: PersonEntity, onComplete: (Result<Unit>) -> Unit) {
         viewModelScope.launch {
-            runCatching { repository.updatePerson(person) }
-                .fold(
-                    onSuccess = { onComplete(Result.success(Unit)) },
-                    onFailure = { onComplete(Result.failure(it)) }
-                )
+            try {
+                val phone = person.phoneNumber.trim()
+                if (repository.findOtherPersonByPhone(phone, person.id) != null) {
+                    throw IllegalArgumentException("این شماره تلفن قبلاً برای شخص دیگری ثبت شده است.")
+                }
+                repository.updatePerson(person.copy(phoneNumber = phone))
+                onComplete(Result.success(Unit))
+            } catch (error: Exception) {
+                onComplete(Result.failure(error))
+            }
         }
     }
 
