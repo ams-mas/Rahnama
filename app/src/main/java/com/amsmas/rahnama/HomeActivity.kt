@@ -1346,8 +1346,7 @@ private fun HomeDropdownField(label: String, selected: String, options: List<Str
     }
 }
 
-@Composable
-private @OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeRequestEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
     val values = remember { mutableStateListOf("خرید", "", "", "", "", "", "", "", "", "", "", "", "") }
