@@ -339,7 +339,7 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                 add(PropertyFormField(16, "برق", yesNo))
                 add(PropertyFormField(17, "برمه آب", yesNo))
                 add(PropertyFormField(18, "مهمان خانه", yesNo))
-                add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
+                if (values[18] == "دارد") add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
                 add(PropertyFormField(26, "کوته", yesNo))
                 add(PropertyFormField(25, "مشخصات بیشتر تعمیر"))
             }
@@ -393,6 +393,10 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                                     if (selected == "کرایی") values[11] = ""
                                     if (selected == "فروشی") values[12] = ""
                                     if (selected != "گروی") values[13] = ""
+                                }
+                                18 -> {
+                                    values[18] = selected
+                                    if (selected != "دارد") values[19] = ""
                                 }
                                 else -> values[field.index] = selected
                             }
