@@ -43,6 +43,7 @@ private fun RahnamaWorkingApp() {
     val requests by dao.observeActiveRequests().collectAsState(initial = emptyList())
     var tab by remember { mutableIntStateOf(0) }
     var form by remember { mutableStateOf("") }
+    var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
     var alert by remember { mutableStateOf<String?>(null) }
     val nav = listOf(
         RahnamaNav("خانه", Icons.Default.Home),
@@ -126,9 +127,12 @@ private fun RahnamaWorkingApp() {
                     it.notes ?: ""
                 )
             }, "＋ ثبت تقاضا") { form = "request" }
-            3 -> HomeRecords(Modifier.padding(padding), "اشخاص و مشتریان", people.map {
-                listOf(it.fullName, "شماره اول: " + it.phoneNumber, it.alternatePhone?.let { phone -> "شماره دوم: " + phone } ?: "", (it.province ?: "") + " " + (it.city ?: ""), "نقش: " + it.roles)
-            }, "＋ ثبت شخص") { form = "person" }
+            3 -> HomePeople(
+                Modifier.padding(padding),
+                people = people,
+                onAdd = { form = "person" },
+                onSelect = { selectedPerson = it }
+            )
             4 -> HomeMatching(Modifier.padding(padding), properties, requests)
             else -> HomeSettings(Modifier.padding(padding))
         }
@@ -240,6 +244,14 @@ private fun RahnamaWorkingApp() {
                 })
         }
     }
+    selectedPerson?.let { person ->
+        PersonDetailDialog(
+            person = person,
+            properties = properties.filter { it.ownerId == person.id },
+            requests = requests.filter { it.clientId == person.id },
+            onDismiss = { selectedPerson = null }
+        )
+    }
     alert?.let { AlertDialog(onDismissRequest = { alert = null }, title = { Text("رهنمای معاملات") }, text = { Text(it) }, confirmButton = { TextButton(onClick = { alert = null }) { Text("تأیید") } }) }
 }
 
@@ -272,6 +284,133 @@ private fun HomeRecords(modifier: Modifier, title: String, rows: List<List<Strin
         }
     }
 }
+@Composable
+private fun HomePeople(
+    modifier: Modifier,
+    people: List<PersonEntity>,
+    onAdd: () -> Unit,
+    onSelect: (PersonEntity) -> Unit
+) {
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item { Text("اشخاص و مشتریان", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
+        item { Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text("＋ ثبت شخص") } }
+        if (people.isEmpty()) {
+            item { Text("هنوز شخصی ثبت نشده است.") }
+        } else {
+            items(people, key = { it.id }) { person ->
+                Card(
+                    modifier = Modifier.fillMaxWidth().clickable { onSelect(person) }
+                ) {
+                    Column(
+                        Modifier.fillMaxWidth().padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(5.dp)
+                    ) {
+                        Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                        Text("شماره تماس: " + person.phoneNumber)
+                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
+                            Text("شماره دوم: " + it)
+                        }
+                        val location = listOfNotNull(person.province, person.city)
+                            .filter { it.isNotBlank() }.joinToString("، ")
+                        if (location.isNotBlank()) Text(location)
+                        Text("نقش: " + homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary)
+                        Text("برای مشاهدهٔ پروفایل و سوابق لمس کنید.", style = MaterialTheme.typography.bodySmall)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PersonDetailDialog(
+    person: PersonEntity,
+    properties: List<PropertyEntity>,
+    requests: List<ClientRequestEntity>,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("پروفایل شخص", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Text(person.fullName, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+                Text("شماره تماس: " + person.phoneNumber)
+                person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: " + it) }
+                person.province?.takeIf { it.isNotBlank() }?.let { Text("ولایت: " + it) }
+                person.city?.takeIf { it.isNotBlank() }?.let { Text("شهر: " + it) }
+                person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: " + it) }
+                Text("نقش: " + homeRoleDisplay(person.roles))
+                person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: " + it) }
+
+                HorizontalDivider()
+                Text("املاک مرتبط (" + properties.size + ")", fontWeight = FontWeight.Bold)
+                if (properties.isEmpty()) {
+                    Text("ملکی برای این شخص ثبت نشده است.")
+                } else {
+                    properties.forEach { property ->
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(property.propertyCode, fontWeight = FontWeight.SemiBold)
+                                Text(homePropertyType(property.propertyType) + " • " + homeListingType(property.listingType))
+                                Text(property.province + "، " + property.city)
+                                property.priceAmount?.let { Text("قیمت/مبلغ گروی: " + it.toLong() + " AFN") }
+                                property.monthlyRent?.let { Text("کرایه ماهانه: " + it.toLong() + " AFN") }
+                                Text("وضعیت: " + homeStatusDisplay(property.status))
+                            }
+                        }
+                    }
+                }
+
+                HorizontalDivider()
+                Text("تقاضاهای فعال مرتبط (" + requests.size + ")", fontWeight = FontWeight.Bold)
+                if (requests.isEmpty()) {
+                    Text("تقاضای فعال برای این شخص ثبت نشده است.")
+                } else {
+                    requests.forEach { request ->
+                        Card(Modifier.fillMaxWidth()) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                                Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType), fontWeight = FontWeight.SemiBold)
+                                Text(request.province + (request.city?.let { "، " + it } ?: ""))
+                                if (request.budgetMin != null || request.budgetMax != null) {
+                                    Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (request.budgetMax?.toLong()?.toString() ?: "—") + " AFN")
+                                }
+                                request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: " + it.toLong() + " AFN") }
+                                Text("وضعیت تقاضا: " + request.requestStatus)
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("بستن") } }
+    )
+}
+
+private fun homeRoleDisplay(role: String): String = when (role) {
+    "owner" -> "مالک"
+    "buyer" -> "خریدار"
+    "tenant" -> "مستأجر"
+    "growy_applicant" -> "متقاضی گروی"
+    "applicant" -> "متقاضی"
+    else -> "سایر"
+}
+
+private fun homeStatusDisplay(status: String): String = when (status) {
+    "available" -> "موجود"
+    "sold" -> "فروخته‌شده"
+    "rented" -> "کرایه داده‌شده"
+    "inactive" -> "غیرفعال"
+    else -> status
+}
+
 @Composable
 private fun HomeSettings(modifier: Modifier) {
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
