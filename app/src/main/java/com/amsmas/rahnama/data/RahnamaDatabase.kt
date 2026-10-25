@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [PersonEntity::class, PropertyEntity::class, ClientRequestEntity::class],
-    version = 2,
+    version = 3,
     exportSchema = false
 )
 abstract class RahnamaDatabase : RoomDatabase() {
@@ -38,6 +38,13 @@ abstract class RahnamaDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE properties ADD COLUMN propertyTypeDetails TEXT")
+                db.execSQL("ALTER TABLE properties ADD COLUMN kotahAvailable INTEGER")
+            }
+        }
+
         @Volatile private var INSTANCE: RahnamaDatabase? = null
 
         fun getInstance(context: Context): RahnamaDatabase =
@@ -46,7 +53,7 @@ abstract class RahnamaDatabase : RoomDatabase() {
                     context.applicationContext,
                     RahnamaDatabase::class.java,
                     "rahnama.db"
-                ).addMigrations(MIGRATION_1_2).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
             }
     }
 }
