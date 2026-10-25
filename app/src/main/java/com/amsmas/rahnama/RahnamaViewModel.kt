@@ -33,6 +33,16 @@ class RahnamaViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun updatePerson(person: PersonEntity, onComplete: (Result<Unit>) -> Unit) {
+        viewModelScope.launch {
+            runCatching { repository.updatePerson(person) }
+                .fold(
+                    onSuccess = { onComplete(Result.success(Unit)) },
+                    onFailure = { onComplete(Result.failure(it)) }
+                )
+        }
+    }
+
     fun saveProperty(
         ownerDraft: PersonEntity,
         propertyDraft: PropertyEntity,
