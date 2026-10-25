@@ -113,16 +113,7 @@ private fun RahnamaWorkingApp() {
         "چند طرف دیوار همسایه است؟ (۰ تا ۳)", "مساحت", "توضیحات",
         "نوع تعمیر/ساختمان (اختیاری)"
     )
-    val requestFields = listOf(
-        "نام مشتری *", "شماره تماس اول مشتری *", "نوع تقاضا: خرید/کرایه/گروی",
-        "نوع ملک: تعمیر/آپارتمان/زمین/دکان/مارکیت/باغ", "حداقل بودجه", "حداکثر بودجه",
-        "حداکثر کرایه ماهانه", "مبلغ گروی", "شرایط گروی: اهل سنت/اهل تشیع/هرکدام",
-        "ولایت *", "شهر", "ناحیه", "حداقل تعداد اتاق", "توضیحات",
-        "آشپزخانه مورد نیاز: دارد/ندارد/مهم نیست", "برق مورد نیاز: دارد/ندارد/مهم نیست",
-        "برمه مورد نیاز: دارد/ندارد/مهم نیست", "ورودی جداگانه مهمان‌خانه: ضروری/ضروری نیست/مهم نیست",
-        "شماره موقعیت روی نقشه (اختیاری)", "آدرس مورد نظر: خانه/زمین/هرکدام",
-        "شماره تماس دوم مشتری"
-    )
+
     val personFields = listOf("نام کامل *", "شماره تماس *", "شماره دوم", "ولایت", "شهر", "آدرس", "نقش: فروشنده/خریدار/متقاضی مستأجر/متقاضی گروی/متقاضی کرایی")
 
     Scaffold(
@@ -277,36 +268,35 @@ private fun RahnamaWorkingApp() {
             }
         )
     } else if (form == "request") {
-        HomeEntryDialog("ثبت تقاضای مشتری", requestFields,
+        HomeRequestEntryDialog(
             onDismiss = { form = "" },
             onSave = { v ->
-                val validationError = validateRequestForm(v)
-                if (v[0].isBlank() || v[1].isBlank() || v[2].isBlank() || v[3].isBlank() || v[9].isBlank()) {
-                    alert = "نام، شماره تماس، نوع تقاضا، نوع ملک و ولایت ضروری است."
+                val validationError = validateSimpleRequestForm(v)
+                if (v[1].isBlank() || v[2].isBlank() || v[0].isBlank()) {
+                    alert = "نوع تقاضا، نام و شماره تماس اول ضروری است."
                 } else if (validationError != null) {
                     alert = validationError
                 } else {
                     val clientDraft = PersonEntity(
-                        fullName = v[0].trim(), phoneNumber = homeToEnglishDigits(v[1]),
-                        alternatePhone = homeToEnglishDigits(v[20]).ifBlank { null },
-                        province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
+                        fullName = v[1].trim(),
+                        phoneNumber = homeToEnglishDigits(v[2]),
+                        alternatePhone = homeToEnglishDigits(v[3]).ifBlank { null },
+                        roles = "applicant"
                     )
                     val requestDraft = ClientRequestEntity(
-                        clientId = 0, listingType = homeMapListing(v[2]), propertyType = homeMapProperty(v[3]),
-                        budgetMin = v[4].trim().toDoubleOrNull(), budgetMax = v[5].trim().toDoubleOrNull(),
-                        maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
-                        growyCondition = homeMapRequestGrowy(v[8]), province = v[9].trim(),
-                        city = v[10].trim().ifBlank { null }, district = v[11].trim().ifBlank { null },
-                        bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim(),
-                        kitchenRequired = homeNullableYesNo(v[14]), electricityRequired = homeNullableYesNo(v[15]),
-                        borewellRequired = homeNullableYesNo(v[16]),
-                        separateGuestEntranceRequired = when {
-                            v[17].contains("مهم نیست") || v[17].isBlank() -> null
-                            v[17].contains("ضروری نیست") -> false
-                            v[17].contains("ضروری") -> true
-                            else -> null
-                        },
-                        mapLocationNumber = v[18].trim().ifBlank { null }, requestedAddressType = v[19].trim().ifBlank { null }
+                        clientId = 0,
+                        listingType = homeMapListing(v[0]),
+                        propertyType = "other",
+                        budgetMin = homeToEnglishDigits(v[10]).trim().toDoubleOrNull(),
+                        maxMonthlyRent = homeToEnglishDigits(v[11]).trim().toDoubleOrNull(),
+                        province = "",
+                        bedroomsMin = homeToEnglishDigits(v[4]).trim().toIntOrNull(),
+                        kitchenRequired = homeNullableYesNo(v[5]),
+                        guestHouseRequired = homeNullableYesNo(v[6]),
+                        kotahRequired = homeNullableYesNo(v[7]),
+                        electricityRequired = homeNullableYesNo(v[8]),
+                        borewellRequired = homeNullableYesNo(v[9]),
+                        notes = v[12].trim().ifBlank { null }
                     )
                     viewModel.saveRequest(clientDraft, requestDraft) { result ->
                         result.fold(
@@ -1357,7 +1347,84 @@ private fun HomeDropdownField(label: String, selected: String, options: List<Str
 }
 
 @Composable
-private fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+private @OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HomeRequestEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+    val values = remember { mutableStateListOf("خرید", "", "", "", "", "", "", "", "", "", "", "", "") }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("ثبت تقاضای مشتری", fontWeight = FontWeight.Bold) },
+        text = {
+            LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                item { RequestDropdownField("نوع تقاضا", values[0], listOf("خرید", "کرایه", "گروی")) { values[0] = it } }
+                item { OutlinedTextField(values[1], { values[1] = it }, label = { Text("نام *") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[2], { values[2] = homeFilterPhoneInput(it) }, label = { Text("شماره اول *") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[3], { values[3] = homeFilterPhoneInput(it) }, label = { Text("شماره دوم") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[4], { values[4] = it }, label = { Text("تعداد اتاق") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { RequestDropdownField("آشپزخانه", values[5], listOf("مهم نیست", "دارد", "ندارد")) { values[5] = it } }
+                item { RequestDropdownField("مهمان‌خانه", values[6], listOf("مهم نیست", "دارد", "ندارد")) { values[6] = it } }
+                item { RequestDropdownField("کوته", values[7], listOf("مهم نیست", "دارد", "ندارد")) { values[7] = it } }
+                item { RequestDropdownField("برق", values[8], listOf("مهم نیست", "دارد", "ندارد")) { values[8] = it } }
+                item { RequestDropdownField("برمه", values[9], listOf("مهم نیست", "دارد", "ندارد")) { values[9] = it } }
+                item { OutlinedTextField(values[10], { values[10] = it }, label = { Text("حداقل بودجه") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[11], { values[11] = it }, label = { Text("حداکثر کرایه ماهانه") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[12], { values[12] = it }, label = { Text("توضیحات بیشتر") }, modifier = Modifier.fillMaxWidth(), minLines = 3) }
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RequestDropdownField(label: String, value: String, options: List<String>, onSelect: (String) -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = !expanded }) {
+        OutlinedTextField(
+            value = value,
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier.fillMaxWidth().menuAnchor(),
+            singleLine = true
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = {
+                    onSelect(option)
+                    expanded = false
+                })
+            }
+        }
+    }
+}
+
+private fun validateSimpleRequestForm(v: List<String>): String? {
+    fun number(index: Int, label: String): Double? {
+        val raw = homeToEnglishDigits(v[index]).trim()
+        if (raw.isBlank()) return null
+        val parsed = raw.toDoubleOrNull()
+        if (parsed == null || !parsed.isFinite() || parsed < 0) {
+            throw IllegalArgumentException("$label باید عدد صفر یا بزرگ‌تر باشد.")
+        }
+        return parsed
+    }
+    return try {
+        number(10, "حداقل بودجه")
+        number(11, "حداکثر کرایه ماهانه")
+        val rooms = homeToEnglishDigits(v[4]).trim()
+        if (rooms.isNotBlank() && (rooms.toIntOrNull() == null || rooms.toInt() < 0)) {
+            return "تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
+        }
+        null
+    } catch (e: IllegalArgumentException) {
+        e.message ?: "مقادیر عددی تقاضا را بررسی کنید."
+    }
+}
+
+fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
     val values = remember(title) { mutableStateListOf<String>().also { state -> fields.forEach { state.add("") } } }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title, fontWeight = FontWeight.Bold) },
         text = { LazyColumn(Modifier.heightIn(max = 450.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
