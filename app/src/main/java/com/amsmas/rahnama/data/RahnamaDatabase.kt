@@ -9,7 +9,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 
 @Database(
     entities = [PersonEntity::class, PropertyEntity::class, ClientRequestEntity::class],
-    version = 3,
+    version = 4,
     exportSchema = false
 )
 abstract class RahnamaDatabase : RoomDatabase() {
@@ -45,6 +45,22 @@ abstract class RahnamaDatabase : RoomDatabase() {
             }
         }
 
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                // Keep every existing property; only rename duplicate codes before enforcing uniqueness.
+                db.execSQL(
+                    "UPDATE properties SET propertyCode = propertyCode || '-DUP-' || id " +
+                    "WHERE id NOT IN (SELECT MIN(id) FROM properties GROUP BY propertyCode)"
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_properties_propertyCode ON properties(propertyCode)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_properties_listingType_propertyType_status ON properties(listingType, propertyType, status)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_properties_province_city_district ON properties(province, city, district)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_persons_phoneNumber ON persons(phoneNumber)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_client_requests_listingType_propertyType_requestStatus ON client_requests(listingType, propertyType, requestStatus)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_client_requests_province_city ON client_requests(province, city)")
+            }
+        }
+
         @Volatile private var INSTANCE: RahnamaDatabase? = null
 
         fun getInstance(context: Context): RahnamaDatabase =
@@ -53,7 +69,7 @@ abstract class RahnamaDatabase : RoomDatabase() {
                     context.applicationContext,
                     RahnamaDatabase::class.java,
                     "rahnama.db"
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build().also { INSTANCE = it }
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build().also { INSTANCE = it }
             }
     }
 }
