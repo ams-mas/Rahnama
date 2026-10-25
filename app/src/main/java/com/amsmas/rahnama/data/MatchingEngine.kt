@@ -40,7 +40,7 @@ object MatchingEngine {
             score += 15
             reasons += "شهر مطابق است"
         } else {
-            return@mapNotNull null
+            reasons += "شهر متفاوت است"
         }
 
         if (!request.district.isNullOrBlank()) {
@@ -50,7 +50,7 @@ object MatchingEngine {
                 score += 8
                 reasons += "ناحیه مطابق است"
             } else {
-                return@mapNotNull null
+                reasons += "ناحیه متفاوت است"
             }
         }
 
