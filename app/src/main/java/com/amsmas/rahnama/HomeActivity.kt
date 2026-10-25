@@ -563,7 +563,7 @@ private fun PersonEntryDialog(
                 Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                val labels = listOf("نام و نام خانوادگی *", "شماره تلفن اصلی *", "شماره تلفن دوم", "ولایت", "شهر/ناحیه", "آدرس دقیق", "توضیحات")
+                val labels = listOf("نام و نام خانوادگی *", "شماره تلفن اصلی *", "شماره دوم (واتساپ/کاری/خانه)", "ولایت", "شهر/ناحیه", "آدرس دقیق", "توضیحات")
                 labels.forEachIndexed { index, label ->
                     OutlinedTextField(
                         value = values[index],
@@ -626,15 +626,18 @@ private fun openSms(context: android.content.Context, phone: String, onError: (S
 }
 
 private fun openWhatsApp(context: android.content.Context, phone: String, onError: (String) -> Unit) {
-    val digits = phone.filter { it.isDigit() }
-    if (digits.isBlank()) {
+    var digits = phone.filter { it.isDigit() }
+    if (digits.startsWith("00")) digits = digits.drop(2)
+    if (digits.startsWith("0")) digits = "93" + digits.drop(1)
+    else if (digits.length == 9) digits = "93$digits"
+    if (digits.isBlank() || digits.length < 10) {
         onError("شماره تلفن معتبر نیست.")
         return
     }
     try {
         context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
     } catch (_: Exception) {
-        onError("بازکردن واتساپ ممکن نشد. شماره را با کد کشور ذخیره کنید.")
+        onError("بازکردن واتساپ ممکن نشد. واتساپ و کد کشور شماره را بررسی کنید.")
     }
 }
 
