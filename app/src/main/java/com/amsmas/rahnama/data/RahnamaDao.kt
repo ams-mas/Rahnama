@@ -27,6 +27,9 @@ interface RahnamaDao {
     @Query("SELECT * FROM persons WHERE phoneNumber = :phone LIMIT 1")
     suspend fun findPersonByPhone(phone: String): PersonEntity?
 
+    @Query("SELECT * FROM persons WHERE phoneNumber = :phone AND id != :personId LIMIT 1")
+    suspend fun findOtherPersonByPhone(phone: String, personId: Long): PersonEntity?
+
     @Query("UPDATE persons SET alternatePhone = :alternatePhone, address = COALESCE(:address, address) WHERE id = :personId")
     suspend fun updatePersonContactDetails(personId: Long, alternatePhone: String?, address: String?)
 
@@ -35,6 +38,9 @@ interface RahnamaDao {
 
     @Query("SELECT * FROM client_requests WHERE requestStatus = 'active' ORDER BY createdAt DESC")
     fun observeActiveRequests(): Flow<List<ClientRequestEntity>>
+
+    @Query("SELECT * FROM client_requests ORDER BY createdAt DESC")
+    fun observeAllRequests(): Flow<List<ClientRequestEntity>>
 
     @Query("SELECT COUNT(*) FROM properties")
     suspend fun countProperties(): Int
