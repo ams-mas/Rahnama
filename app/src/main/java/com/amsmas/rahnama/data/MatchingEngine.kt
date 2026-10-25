@@ -23,6 +23,16 @@ object MatchingEngine {
         if (!property.currency.equals(request.currency, ignoreCase = true)) return@mapNotNull null
         if (!property.province.equals(request.province, ignoreCase = true)) return@mapNotNull null
 
+        if (request.kitchenRequired != null && property.kitchenAvailable != request.kitchenRequired) return@mapNotNull null
+        if (request.electricityRequired != null && property.electricityAvailable != request.electricityRequired) return@mapNotNull null
+        if (request.borewellRequired != null && property.borewellAvailable != request.borewellRequired) return@mapNotNull null
+        if (request.separateGuestEntranceRequired != null &&
+            property.guestHouseSeparateEntrance != request.separateGuestEntranceRequired
+        ) return@mapNotNull null
+        if (!request.mapLocationNumber.isNullOrBlank() &&
+            !property.mapLocationNumber.equals(request.mapLocationNumber, ignoreCase = true)
+        ) return@mapNotNull null
+
         val reasons = mutableListOf("نوع معامله، ملک و ولایت مطابق است")
         var score = 60
         if (request.city.isNullOrBlank() || property.city.equals(request.city, ignoreCase = true)) {
@@ -42,7 +52,7 @@ object MatchingEngine {
             reasons += "مبلغ در محدوده بودجه است"
         }
         val monthly = when (property.listingType) {
-            "rent" -> property.priceAmount
+            "rent" -> property.monthlyRent ?: property.priceAmount
             "growy" -> property.monthlyRent
             else -> null
         }
