@@ -382,7 +382,21 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                 Text("مشخصات ملک", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
                 fields.forEach { field ->
                     if (field.options != null) {
-                        HomeDropdownField(field.label, values[field.index], field.options) { values[field.index] = it }
+                        HomeDropdownField(field.label, values[field.index], field.options) { selected ->
+                            when (field.index) {
+                                3 -> {
+                                    values[3] = selected
+                                    for (index in 14..26) values[index] = ""
+                                }
+                                4 -> {
+                                    values[4] = selected
+                                    if (selected == "کرایی") values[11] = ""
+                                    if (selected == "فروشی") values[12] = ""
+                                    if (selected != "گروی") values[13] = ""
+                                }
+                                else -> values[field.index] = selected
+                            }
+                        }
                     } else {
                         OutlinedTextField(values[field.index], { values[field.index] = it },
                             label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
