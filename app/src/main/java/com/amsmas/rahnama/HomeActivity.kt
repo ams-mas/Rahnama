@@ -443,6 +443,18 @@ private fun HomePeople(
     }
 }
 
+private data class PersonHistoryEntry(
+    val timestamp: Long,
+    val category: String,
+    val title: String,
+    val location: String,
+    val amount: String,
+    val status: String
+)
+
+private fun homeHistoryDate(timestamp: Long): String =
+    java.text.SimpleDateFormat("yyyy/MM/dd", java.util.Locale.getDefault()).format(java.util.Date(timestamp))
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PersonDetailDialog(
@@ -456,6 +468,49 @@ private fun PersonDetailDialog(
     onEdit: (PersonEntity) -> Unit
 ) {
     var selectedTab by remember(person.id) { mutableIntStateOf(0) }
+    val activeProperties = properties.filter { it.status == "available" }
+    val activeRequests = requests.filter { it.requestStatus == "active" }
+    val history = (
+        properties.map { property ->
+            val amount = when (property.listingType) {
+                "rent" -> property.monthlyRent?.let { "کرایه ماهانه: ${it.toLong()} افغانی" } ?: "کرایه ثبت نشده"
+                "growy" -> buildString {
+                    append("مبلغ گروی: ")
+                    append(property.priceAmount?.toLong()?.toString() ?: "ثبت نشده")
+                    append(" افغانی")
+                    property.monthlyRent?.let { append(" • کرایه ماهانه: ${it.toLong()} افغانی") }
+                }
+                else -> property.priceAmount?.let { "قیمت فروش: ${it.toLong()} افغانی" } ?: "قیمت ثبت نشده"
+            }
+            PersonHistoryEntry(
+                timestamp = property.createdAt,
+                category = "ملک ثبت‌شده",
+                title = "${property.propertyCode} • ${homePropertyType(property.propertyType)} • ${homeListingType(property.listingType)}",
+                location = listOfNotNull(property.province, property.city, property.district).filter { it.isNotBlank() }.joinToString("، "),
+                amount = amount,
+                status = homeStatusDisplay(property.status)
+            )
+        } + requests.map { request ->
+            val amount = when (request.listingType) {
+                "rent" -> request.maxMonthlyRent?.let { "حداکثر کرایه: ${it.toLong()} افغانی" } ?: "بودجه کرایه ثبت نشده"
+                "growy" -> request.desiredGrowyAmount?.let { "مبلغ گروی موردنظر: ${it.toLong()} افغانی" } ?: "مبلغ گروی ثبت نشده"
+                else -> {
+                    if (request.budgetMin != null || request.budgetMax != null)
+                        "بودجه: ${request.budgetMin?.toLong()?.toString() ?: "—"} تا ${request.budgetMax?.toLong()?.toString() ?: "—"} افغانی"
+                    else "بودجه ثبت نشده"
+                }
+            }
+            PersonHistoryEntry(
+                timestamp = request.createdAt,
+                category = "تقاضای مشتری",
+                title = "${homePropertyType(request.propertyType)} • ${homeListingType(request.listingType)}",
+                location = listOfNotNull(request.province, request.city, request.district).filter { it.isNotBlank() }.joinToString("، "),
+                amount = amount,
+                status = if (request.requestStatus == "active") "فعال" else request.requestStatus
+            )
+        }
+    ).sortedByDescending { it.timestamp }
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
@@ -466,7 +521,7 @@ private fun PersonDetailDialog(
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
         ) {
-            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                         Text("پروفایل شخص", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
@@ -476,106 +531,133 @@ private fun PersonDetailDialog(
                     }
                     IconButton(onClick = onDismiss) { Icon(Icons.Default.Close, contentDescription = "بستن پروفایل") }
                 }
+
                 Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                 )) {
-                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                            Icon(Icons.Default.Call, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.width(8.dp))
-                            Column(Modifier.weight(1f)) {
-                                Text("شماره اصلی", style = MaterialTheme.typography.labelMedium)
-                                Text(person.phoneNumber, style = MaterialTheme.typography.bodyLarge)
-                            }
-                        }
-                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
-                            HorizontalDivider()
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Icon(Icons.Default.PhoneAndroid, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(8.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text("شماره دوم", style = MaterialTheme.typography.labelMedium)
-                                    Text(it, style = MaterialTheme.typography.bodyLarge)
-                                }
-                            }
-                        }
+                    Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                        Text("شماره اصلی: ${person.phoneNumber}", style = MaterialTheme.typography.bodyLarge)
+                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: $it") }
                         val location = listOfNotNull(person.province, person.city).filter { it.isNotBlank() }.joinToString("، ")
-                        if (location.isNotBlank()) {
-                            HorizontalDivider()
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.Top) {
-                                Icon(Icons.Default.LocationOn, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                                Spacer(Modifier.width(8.dp))
-                                Column(Modifier.weight(1f)) {
-                                    Text("موقعیت", style = MaterialTheme.typography.labelMedium)
-                                    Text(location)
-                                }
-                            }
-                        }
-                        person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس دقیق: $it", style = MaterialTheme.typography.bodyMedium) }
-                        person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: $it", style = MaterialTheme.typography.bodyMedium) }
+                        if (location.isNotBlank()) Text("موقعیت: $location")
+                        person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: $it") }
+                        person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: $it") }
                     }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        Button(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Call, contentDescription = null)
-                            Spacer(Modifier.width(6.dp)); Text("تماس")
-                        }
-                        OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Sms, contentDescription = null)
-                            Spacer(Modifier.width(6.dp)); Text("پیامک")
-                        }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
+                    Button(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Call, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("تماس")
                     }
-                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.Chat, contentDescription = null)
-                        Spacer(Modifier.width(8.dp)); Text("گفتگو در واتساپ")
+                    OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Sms, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("پیامک")
                     }
-                    OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.Edit, contentDescription = null)
-                        Spacer(Modifier.width(8.dp)); Text("ویرایش اطلاعات شخص")
+                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Chat, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("واتساپ")
                     }
                 }
-                HorizontalDivider()
+                OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Edit, contentDescription = null); Spacer(Modifier.width(6.dp)); Text("ویرایش اطلاعات شخص")
+                }
+
                 TabRow(selectedTabIndex = selectedTab) {
                     Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
-                        text = { Text("املاک (${properties.size})") })
+                        text = { Text("فعال (${activeProperties.size + activeRequests.size})") })
                     Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
-                        text = { Text("سوابق تقاضا (${requests.size})") })
+                        text = { Text("تاریخچه (${history.size})") })
+                    Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 },
+                        text = { Text("جزئیات") })
                 }
+
                 Column(Modifier.fillMaxWidth().weight(1f, fill = true).verticalScroll(rememberScrollState()),
                     verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    if (selectedTab == 0) {
-                        if (properties.isEmpty()) {
-                            Text("ملکی برای این شخص ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else properties.forEach { property ->
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(property.propertyCode, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
-                                    Text(homePropertyType(property.propertyType) + " • " + homeListingType(property.listingType), fontWeight = FontWeight.SemiBold)
-                                    Text(listOfNotNull(property.province, property.city, property.district).filter { it.isNotBlank() }.joinToString("، "))
-                                    property.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: $it") }
-                                    property.priceAmount?.let { Text("قیمت/مبلغ گروی: " + it.toLong() + " افغانی") }
-                                    property.monthlyRent?.let { Text("کرایه ماهانه: " + it.toLong() + " افغانی") }
-                                    Text("وضعیت: " + homeStatusDisplay(property.status))
+                    when (selectedTab) {
+                        0 -> {
+                            Text("ملک‌های فعال برای فروش، کرایه یا گروی", fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.primary)
+                            if (activeProperties.isEmpty()) {
+                                Text("این شخص فعلاً ملک فعالی برای عرضه ندارد.")
+                            } else activeProperties.sortedByDescending { it.createdAt }.forEach { property ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text("${property.propertyCode} • ${homePropertyType(property.propertyType)}",
+                                            fontWeight = FontWeight.Bold)
+                                        Text("نوع معامله: ${homeListingType(property.listingType)}")
+                                        Text("موقعیت: " + listOfNotNull(property.province, property.city, property.district)
+                                            .filter { it.isNotBlank() }.joinToString("، "))
+                                        property.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: $it") }
+                                        when (property.listingType) {
+                                            "rent" -> property.monthlyRent?.let { Text("کرایه ماهانه: ${it.toLong()} افغانی") }
+                                            "growy" -> {
+                                                property.priceAmount?.let { Text("مبلغ گروی: ${it.toLong()} افغانی") }
+                                                property.monthlyRent?.let { Text("کرایه ماهانه: ${it.toLong()} افغانی") }
+                                                property.growyCondition?.let { Text("شرایط گروی: ${homeGrowyDisplay(it)}") }
+                                            }
+                                            else -> property.priceAmount?.let { Text("قیمت فروش: ${it.toLong()} افغانی") }
+                                        }
+                                        property.bedrooms?.let { Text("تعداد اتاق: $it") }
+                                        property.areaValue?.let { Text("مساحت: $it ${property.areaUnit.orEmpty()}") }
+                                        Text("تاریخ ثبت: ${homeHistoryDate(property.createdAt)}")
+                                    }
+                                }
+                            }
+
+                            HorizontalDivider()
+                            Text("تقاضاهای فعال شخص", fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                            if (activeRequests.isEmpty()) {
+                                Text("این شخص فعلاً تقاضای فعال خرید، کرایه یا گروی ندارد.")
+                            } else activeRequests.sortedByDescending { it.createdAt }.forEach { request ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Text("${homePropertyType(request.propertyType)} • ${homeListingType(request.listingType)}",
+                                            fontWeight = FontWeight.Bold)
+                                        Text("موقعیت موردنظر: " + listOfNotNull(request.province, request.city, request.district)
+                                            .filter { it.isNotBlank() }.joinToString("، "))
+                                        when (request.listingType) {
+                                            "rent" -> request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: ${it.toLong()} افغانی") }
+                                            "growy" -> {
+                                                request.desiredGrowyAmount?.let { Text("مبلغ گروی موردنظر: ${it.toLong()} افغانی") }
+                                                Text("شرایط گروی: ${homeGrowyDisplay(request.growyCondition)}")
+                                            }
+                                            else -> if (request.budgetMin != null || request.budgetMax != null)
+                                                Text("بودجه: ${request.budgetMin?.toLong()?.toString() ?: "—"} تا ${request.budgetMax?.toLong()?.toString() ?: "—"} افغانی")
+                                        }
+                                        request.bedroomsMin?.let { Text("حداقل تعداد اتاق: $it") }
+                                        Text("تاریخ ثبت: ${homeHistoryDate(request.createdAt)}")
+                                    }
                                 }
                             }
                         }
-                    } else {
-                        if (requests.isEmpty()) {
-                            Text("هیچ تقاضایی برای این شخص ثبت نشده است.", color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        } else requests.forEach { request ->
-                            Card(Modifier.fillMaxWidth()) {
-                                Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                                    Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType), fontWeight = FontWeight.Bold)
-                                    Text(listOfNotNull(request.province, request.city, request.district).filter { it.isNotBlank() }.joinToString("، "))
-                                    if (request.budgetMin != null || request.budgetMax != null) {
-                                        Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " +
-                                            (request.budgetMax?.toLong()?.toString() ?: "—") + " افغانی")
+                        1 -> {
+                            Text("سوابق به ترتیب تاریخ ثبت، از جدید به قدیم", style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            if (history.isEmpty()) Text("هنوز سابقه‌ای برای این شخص ثبت نشده است.")
+                            history.forEach { item ->
+                                Card(Modifier.fillMaxWidth()) {
+                                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                        Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                            Column(Modifier.weight(1f)) {
+                                                Text(item.title, fontWeight = FontWeight.Bold)
+                                                Text(item.category, style = MaterialTheme.typography.labelMedium,
+                                                    color = MaterialTheme.colorScheme.primary)
+                                            }
+                                            Text(homeHistoryDate(item.timestamp), style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        if (item.location.isNotBlank()) Text("موقعیت: ${item.location}")
+                                        Text(item.amount)
+                                        Text("وضعیت فعلی: ${item.status}")
                                     }
-                                    request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: " + it.toLong() + " افغانی") }
-                                    Text("وضعیت تقاضا: " + if (request.requestStatus == "active") "فعال" else request.requestStatus)
                                 }
                             }
+                        }
+                        else -> {
+                            Text("تاریخ ثبت شخص: ${homeHistoryDate(person.createdAt)}")
+                            Text("شماره اصلی: ${person.phoneNumber}")
+                            person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: $it") }
+                            person.province?.takeIf { it.isNotBlank() }?.let { Text("ولایت: $it") }
+                            person.city?.takeIf { it.isNotBlank() }?.let { Text("شهر/ناحیه: $it") }
+                            person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس دقیق: $it") }
+                            person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: $it") }
                         }
                     }
                 }
@@ -697,6 +779,13 @@ private fun homeRoleDisplay(role: String): String = when (role) {
     "growy_applicant" -> "متقاضی گروی"
     "applicant" -> "متقاضی"
     else -> "سایر"
+}
+
+private fun homeGrowyDisplay(value: String): String = when (value) {
+    "sunni" -> "اهل سنت"
+    "shia" -> "اهل تشیع"
+    "either" -> "هرکدام"
+    else -> "نامشخص"
 }
 
 private fun homeStatusDisplay(status: String): String = when (status) {
