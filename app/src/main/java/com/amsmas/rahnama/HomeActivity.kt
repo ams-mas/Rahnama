@@ -461,15 +461,68 @@ private fun HomeStatCard(
     }
 }
 @Composable
-private fun HomeRecords(modifier: Modifier, title: String, rows: List<List<String>>, action: String, onAdd: () -> Unit) {
+private fun HomeRecords(
+    modifier: Modifier,
+    title: String,
+    rows: List<List<String>>,
+    action: String,
+    onAdd: () -> Unit,
+    archiveMode: Boolean,
+    onArchiveModeChange: (Boolean) -> Unit,
+    onStatusChange: (String, Long, String) -> Unit
+) {
+    var expandedStatusRecord by remember { mutableStateOf<String?>(null) }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FilterChip(selected = !archiveMode, onClick = { onArchiveModeChange(false) }, label = { Text("فعال") }, modifier = Modifier.weight(1f))
+            FilterChip(selected = archiveMode, onClick = { onArchiveModeChange(true) }, label = { Text("بایگانی / غیرفعال") }, modifier = Modifier.weight(1f))
+        }
         Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text(action) }
-        if (rows.isEmpty()) Text("هنوز موردی ثبت نشده است.")
-        else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(rows) { row -> Card(Modifier.fillMaxWidth()) { Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                row.filter { it.isNotBlank() }.forEachIndexed { index, text -> Text(text, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal) }
-            } } }
+        if (rows.isEmpty()) {
+            Text(if (archiveMode) "در بایگانی موردی ثبت نشده است." else "هنوز مورد فعالی ثبت نشده است.")
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(rows) { row ->
+                val marker = row.firstOrNull()?.takeIf { it.startsWith("__RAHNAMA_RECORD__:") }
+                val parts = marker?.removePrefix("__RAHNAMA_RECORD__:")?.split(":").orEmpty()
+                val recordType = parts.getOrNull(0).orEmpty()
+                val recordId = parts.getOrNull(1)?.toLongOrNull()
+                val currentStatus = parts.getOrNull(2).orEmpty()
+                val statusKey = "$recordType:$recordId"
+                val statuses = if (recordType == "P") listOf("available", "sold", "rented", "mortgaged", "inactive") else listOf("active", "completed", "cancelled")
+                Card(Modifier.fillMaxWidth()) {
+                    Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                        row.drop(1).filter { it.isNotBlank() }.forEachIndexed { index, text ->
+                            Text(text, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
+                        }
+                        if (recordId != null && recordType in listOf("P", "R")) {
+                            Text(
+                                if (recordType == "P") "وضعیت ملک: ${homeStatusDisplay(currentStatus)}" else "وضعیت تقاضا: ${homeRequestStatusDisplay(currentStatus)}",
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Box {
+                                OutlinedButton(onClick = { expandedStatusRecord = statusKey }) {
+                                    Icon(Icons.Default.SyncAlt, contentDescription = null)
+                                    Spacer(Modifier.width(6.dp))
+                                    Text("تغییر وضعیت")
+                                }
+                                DropdownMenu(expanded = expandedStatusRecord == statusKey, onDismissRequest = { expandedStatusRecord = null }) {
+                                    statuses.forEach { status ->
+                                        DropdownMenuItem(
+                                            text = { Text(if (recordType == "P") homeStatusDisplay(status) else homeRequestStatusDisplay(status)) },
+                                            onClick = {
+                                                onStatusChange(recordType, recordId, status)
+                                                expandedStatusRecord = null
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -978,10 +1031,18 @@ private fun homeGrowyDisplay(value: String): String = when (value) {
 }
 
 private fun homeStatusDisplay(status: String): String = when (status) {
-    "available" -> "موجود"
+    "available" -> "موجود و فعال"
     "sold" -> "فروخته‌شده"
     "rented" -> "کرایه داده‌شده"
-    "inactive" -> "غیرفعال"
+    "mortgaged" -> "گروی داده‌شده"
+    "inactive" -> "لغوشده / پس‌گرفته‌شده"
+    else -> status
+}
+
+private fun homeRequestStatusDisplay(status: String): String = when (status) {
+    "active" -> "فعال"
+    "completed" -> "تکمیل‌شده"
+    "cancelled" -> "لغوشده"
     else -> status
 }
 
