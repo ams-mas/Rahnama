@@ -140,7 +140,9 @@ private fun RahnamaWorkingApp() {
                 Modifier.padding(padding), properties, requests,
                 onProperties = { type -> propertyListingFilter = type.ifBlank { null }; tab = 1 },
                 onRequests = { type -> requestListingFilter = type.ifBlank { null }; tab = 2 },
-                onMatch = { propertyListingFilter = null; requestListingFilter = null; tab = 4 }
+                onMatch = { propertyListingFilter = null; requestListingFilter = null; tab = 4 },
+                onRegisterProperty = { form = "property" },
+                onRegisterRequest = { form = "request" }
             )
             1 -> HomeRecords(Modifier.padding(padding),
                 if (propertyListingFilter == null) "مدیریت املاک" else "املاک ${homeListingType(propertyListingFilter!!)}",
@@ -363,8 +365,11 @@ private fun HomeDashboard(
     requests: List<ClientRequestEntity>,
     onProperties: (String) -> Unit,
     onRequests: (String) -> Unit,
-    onMatch: () -> Unit
+    onMatch: () -> Unit,
+    onRegisterProperty: () -> Unit,
+    onRegisterRequest: () -> Unit
 ) {
+    var showRegisterOptions by remember { mutableStateOf(false) }
     val availableProperties = properties.filter { it.status == "available" }
     val saleCount = availableProperties.count { it.listingType == "sale" }
     val growyCount = availableProperties.count { it.listingType == "growy" }
@@ -382,6 +387,31 @@ private fun HomeDashboard(
             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text("رهنمای معاملات", fontSize = 25.sp, fontWeight = FontWeight.Bold)
                 Text("وضعیت املاک موجود و تقاضاهای مشتریان", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = { showRegisterOptions = !showRegisterOptions }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("ثبت")
+                    Spacer(Modifier.width(4.dp))
+                    Icon(if (showRegisterOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
+                }
+                if (showRegisterOptions) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterProperty() }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.HomeWork, contentDescription = null)
+                            Spacer(Modifier.width(6.dp))
+                            Text("ثبت ملک")
+                        }
+                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterRequest() }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Assignment, contentDescription = null)
+                            Spacer(Modifier.width(6.dp))
+                            Text("ثبت تقاضا")
+                        }
+                    }
+                }
             }
         }
         item {
