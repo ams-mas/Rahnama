@@ -60,6 +60,8 @@ private fun RahnamaWorkingApp() {
     val requests by viewModel.activeRequests.collectAsState(initial = emptyList())
     val allRequests by viewModel.allRequests.collectAsState(initial = emptyList())
     var tab by remember { mutableIntStateOf(0) }
+    var propertyListingFilter by remember { mutableStateOf<String?>(null) }
+    var requestListingFilter by remember { mutableStateOf<String?>(null) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
     var editingPerson by remember { mutableStateOf<PersonEntity?>(null) }
@@ -124,12 +126,23 @@ private fun RahnamaWorkingApp() {
     Scaffold(
         topBar = { TopAppBar(title = {}, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)) },
         bottomBar = { NavigationBar { nav.forEachIndexed { index, item ->
-            NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Icon(item.icon, contentDescription = item.title) }, label = { Text(item.title) })
+            NavigationBarItem(selected = tab == index, onClick = {
+                tab = index
+                if (index != 1) propertyListingFilter = null
+                if (index != 2) requestListingFilter = null
+            }, icon = { Icon(item.icon, contentDescription = item.title) }, label = { Text(item.title) })
         } } }
     ) { padding ->
         when (tab) {
-            0 -> HomeDashboard(Modifier.padding(padding), properties, requests, { tab = 1 }, { tab = 2 }, { tab = 4 })
-            1 -> HomeRecords(Modifier.padding(padding), "مدیریت املاک", properties.map {
+            0 -> HomeDashboard(
+                Modifier.padding(padding), properties, requests,
+                onProperties = { type -> propertyListingFilter = type.ifBlank { null }; tab = 1 },
+                onRequests = { type -> requestListingFilter = type.ifBlank { null }; tab = 2 },
+                onMatch = { propertyListingFilter = null; requestListingFilter = null; tab = 4 }
+            )
+            1 -> HomeRecords(Modifier.padding(padding),
+                if (propertyListingFilter == null) "مدیریت املاک" else "املاک ${homeListingType(propertyListingFilter!!)}",
+                properties.filter { propertyListingFilter == null || (it.listingType == propertyListingFilter && it.status == "available") }.map {
                 listOf(
                     it.propertyCode,
                     homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
@@ -155,7 +168,9 @@ private fun RahnamaWorkingApp() {
                     it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
             }, "＋ ثبت ملک") { form = "property" }
-            2 -> HomeRecords(Modifier.padding(padding), "تقاضاهای مشتریان", requests.map {
+            2 -> HomeRecords(Modifier.padding(padding),
+                if (requestListingFilter == null) "تقاضاهای مشتریان" else "تقاضای ${homeListingType(requestListingFilter!!)}",
+                requests.filter { requestListingFilter == null || it.listingType == requestListingFilter }.map {
                 listOf(
                     homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
                     it.province + (it.city?.let { city -> "، " + city } ?: ""),
@@ -342,8 +357,8 @@ private fun HomeDashboard(
     modifier: Modifier,
     properties: List<PropertyEntity>,
     requests: List<ClientRequestEntity>,
-    onProperties: () -> Unit,
-    onRequests: () -> Unit,
+    onProperties: (String) -> Unit,
+    onRequests: (String) -> Unit,
     onMatch: () -> Unit
 ) {
     val availableProperties = properties.filter { it.status == "available" }
@@ -373,9 +388,9 @@ private fun HomeDashboard(
                     Text("املاک موجود", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HomeStatCard("فروشی", saleCount, Icons.Default.Home, Modifier.weight(1f), onProperties)
-                    HomeStatCard("گروی", growyCount, Icons.Default.Key, Modifier.weight(1f), onProperties)
-                    HomeStatCard("کرایی", rentCount, Icons.Default.Apartment, Modifier.weight(1f), onProperties)
+                    HomeStatCard("فروشی", saleCount, Icons.Default.Home, Modifier.weight(1f), { onProperties("sale") })
+                    HomeStatCard("گروی", growyCount, Icons.Default.Key, Modifier.weight(1f), { onProperties("growy") })
+                    HomeStatCard("کرایی", rentCount, Icons.Default.Apartment, Modifier.weight(1f), { onProperties("rent") })
                 }
             }
         }
@@ -387,21 +402,21 @@ private fun HomeDashboard(
                     Text("تقاضاهای مشتریان", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    HomeStatCard("خرید", buyRequestCount, Icons.Default.ShoppingCart, Modifier.weight(1f), onRequests)
-                    HomeStatCard("گروی", growyRequestCount, Icons.Default.Key, Modifier.weight(1f), onRequests)
-                    HomeStatCard("کرایه", rentRequestCount, Icons.Default.Search, Modifier.weight(1f), onRequests)
+                    HomeStatCard("خرید", buyRequestCount, Icons.Default.ShoppingCart, Modifier.weight(1f), { onRequests("sale") })
+                    HomeStatCard("گروی", growyRequestCount, Icons.Default.Key, Modifier.weight(1f), { onRequests("growy") })
+                    HomeStatCard("کرایه", rentRequestCount, Icons.Default.Search, Modifier.weight(1f), { onRequests("rent") })
                 }
             }
         }
         item {
-            Button(onClick = onProperties, modifier = Modifier.fillMaxWidth()) {
+            Button(onClick = { onProperties("") }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Default.Business, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("مدیریت املاک")
             }
         }
         item {
-            OutlinedButton(onClick = onRequests, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { onRequests("") }, modifier = Modifier.fillMaxWidth()) {
                 Text("مدیریت تقاضاها")
             }
         }
