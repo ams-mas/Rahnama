@@ -460,7 +460,7 @@ private fun PersonDetailDialog(
         properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            modifier = Modifier.fillMaxWidth(0.96f).widthIn(max = 560.dp).heightIn(max = 300.dp, maxHeight = 760.dp),
+            modifier = Modifier.fillMaxWidth(0.96f).widthIn(max = 560.dp).heightIn(min = 300.dp, max = 760.dp),
             shape = MaterialTheme.shapes.extraLarge,
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 6.dp
