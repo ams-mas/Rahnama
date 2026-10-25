@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="rahnama_primary">#245B4A</color>
+    <color name="rahnama_primary_dark">#174235</color>
+    <color name="rahnama_accent">#D6A84F</color>
+    <color name="rahnama_background">#F7F6F2</color>
+</resources>
