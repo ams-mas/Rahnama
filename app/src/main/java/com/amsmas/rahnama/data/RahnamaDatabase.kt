@@ -63,6 +63,13 @@ abstract class RahnamaDatabase : RoomDatabase() {
 
         @Volatile private var INSTANCE: RahnamaDatabase? = null
 
+        fun closeInstanceForFileOperation() {
+            synchronized(this) {
+                INSTANCE?.close()
+                INSTANCE = null
+            }
+        }
+
         fun getInstance(context: Context): RahnamaDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
