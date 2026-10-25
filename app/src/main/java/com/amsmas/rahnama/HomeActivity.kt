@@ -221,8 +221,8 @@ private fun RahnamaWorkingApp() {
                     alert = validationError
                 } else {
                     val ownerDraft = PersonEntity(
-                        fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                        alternatePhone = v[2].trim().ifBlank { null },
+                        fullName = v[0].trim(), phoneNumber = homeToEnglishDigits(v[1]),
+                        alternatePhone = homeToEnglishDigits(v[2]).ifBlank { null },
                         province = v[5].trim(), city = v[6].trim(),
                         address = v[8].trim().ifBlank { null }, roles = "owner"
                     )
@@ -266,8 +266,8 @@ private fun RahnamaWorkingApp() {
                     alert = validationError
                 } else {
                     val clientDraft = PersonEntity(
-                        fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                        alternatePhone = v[20].trim().ifBlank { null },
+                        fullName = v[0].trim(), phoneNumber = homeToEnglishDigits(v[1]),
+                        alternatePhone = homeToEnglishDigits(v[20]).ifBlank { null },
                         province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
                     )
                     val requestDraft = ClientRequestEntity(
@@ -322,12 +322,12 @@ private fun RahnamaWorkingApp() {
                         val phone = person.phoneNumber
                         selectedPersonForCall = null
                         dialPersonNumber(context, phone) { alert = it }
-                    }, modifier = Modifier.fillMaxWidth()) { Text("شماره اصلی: " + person.phoneNumber) }
+                    }, modifier = Modifier.fillMaxWidth()) { Text("شماره اصلی: " + homeToPersianDigits(person.phoneNumber)) }
                     person.alternatePhone?.takeIf { it.isNotBlank() }?.let { alternate ->
                         OutlinedButton(onClick = {
                             selectedPersonForCall = null
                             dialPersonNumber(context, alternate) { alert = it }
-                        }, modifier = Modifier.fillMaxWidth()) { Text("شماره دوم: " + alternate) }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("شماره دوم: " + homeToPersianDigits(alternate)) }
                     }
                 }
             },
@@ -380,10 +380,11 @@ private fun HomePeople(
     var expandedPersonId by remember { mutableStateOf<Long?>(null) }
     val filteredPeople = remember(people, query) {
         val term = query.trim()
+        val normalizedTerm = homeToEnglishDigits(term)
         if (term.isBlank()) people else people.filter {
             it.fullName.contains(term, ignoreCase = true) ||
-                it.phoneNumber.contains(term, ignoreCase = true) ||
-                (it.alternatePhone?.contains(term, ignoreCase = true) == true)
+                homeToEnglishDigits(it.phoneNumber).contains(normalizedTerm, ignoreCase = true) ||
+                (it.alternatePhone?.let { phone -> homeToEnglishDigits(phone).contains(normalizedTerm, ignoreCase = true) } == true)
         }
     }
     Column(
@@ -437,7 +438,7 @@ private fun HomePeople(
                                 Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 17.sp)
                                     val phoneLine = listOfNotNull(
-                                        person.phoneNumber.takeIf { it.isNotBlank() },
+                                        homeToPersianDigits(person.phoneNumber).takeIf { it.isNotBlank() },
                                         person.alternatePhone?.takeIf { it.isNotBlank() }
                                     ).joinToString(" - ")
                                     Text(phoneLine, style = MaterialTheme.typography.bodyMedium)
@@ -570,8 +571,8 @@ private fun PersonDetailDialog(
                     containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                 )) {
                     Column(Modifier.fillMaxWidth().padding(10.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                        Text("شماره اصلی: ${person.phoneNumber}", style = MaterialTheme.typography.bodyLarge)
-                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: $it") }
+                        Text("شماره اصلی: ${homeToPersianDigits(person.phoneNumber)}", style = MaterialTheme.typography.bodyLarge)
+                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: ${homeToPersianDigits(it)}") }
                         val location = listOfNotNull(person.province, person.city).filter { it.isNotBlank() }.joinToString("، ")
                         if (location.isNotBlank()) Text("موقعیت: $location")
                         person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: $it") }
@@ -759,7 +760,7 @@ private fun PersonEntryDialog(
                 labels.forEachIndexed { index, label ->
                     OutlinedTextField(
                         value = values[index],
-                        onValueChange = { values[index] = it; error = null },
+                        onValueChange = { values[index] = if (index == 1 || index == 2) homeFilterPhoneInput(it) else it; error = null },
                         label = { Text(label) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = index < 6
@@ -785,8 +786,8 @@ private fun PersonEntryDialog(
                     onSave(PersonEntity(
                         id = initialPerson?.id ?: 0,
                         fullName = values[0].trim(),
-                        phoneNumber = values[1].trim(),
-                        alternatePhone = values[2].trim().ifBlank { null },
+                        phoneNumber = homeToEnglishDigits(values[1]),
+                        alternatePhone = homeToEnglishDigits(values[2]).ifBlank { null },
                         province = values[3].trim().ifBlank { null },
                         city = values[4].trim().ifBlank { null },
                         address = values[5].trim().ifBlank { null },
@@ -800,6 +801,26 @@ private fun PersonEntryDialog(
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } }
     )
 }
+
+
+private fun homeToEnglishDigits(value: String): String = buildString {
+    value.forEach { ch ->
+        append(when (ch) {
+            in '۰'..'۹' -> ('0'.code + (ch.code - '۰'.code)).toChar()
+            in '٠'..'٩' -> ('0'.code + (ch.code - '٠'.code)).toChar()
+            else -> ch
+        })
+    }
+}
+
+private fun homeToPersianDigits(value: String): String = buildString {
+    value.forEach { ch ->
+        append(if (ch in '0'..'9') ('۰'.code + (ch.code - '0'.code)).toChar() else ch)
+    }
+}
+
+private fun homeFilterPhoneInput(value: String): String =
+    value.filter { it in '0'..'9' || it in '۰'..'۹' || it in '٠'..'٩' || it == '+' || it == '-' || it == ' ' || it == '(' || it == ')' }
 
 private fun dialPersonNumber(context: android.content.Context, phone: String, onError: (String) -> Unit) {
     try {
@@ -1087,8 +1108,9 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                             }
                         }
                     } else {
-                        OutlinedTextField(values[field.index], { values[field.index] = it },
-                            label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        OutlinedTextField(values[field.index], {
+                            values[field.index] = if (field.label.contains("شماره تماس")) homeFilterPhoneInput(it) else it
+                        }, label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
                     }
                 }
             }
@@ -1141,7 +1163,12 @@ private fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -
     val values = remember(title) { mutableStateListOf<String>().also { state -> fields.forEach { state.add("") } } }
     AlertDialog(onDismissRequest = onDismiss, title = { Text(title, fontWeight = FontWeight.Bold) },
         text = { LazyColumn(Modifier.heightIn(max = 450.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(fields.size) { i -> OutlinedTextField(value = values[i], onValueChange = { values[i] = it }, label = { Text(fields[i]) }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+            items(fields.size) { i ->
+                val isPhoneField = fields[i].contains("شماره تماس")
+                OutlinedTextField(value = values[i], onValueChange = {
+                    values[i] = if (isPhoneField) homeFilterPhoneInput(it) else it
+                }, label = { Text(fields[i]) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+            }
         } },
         confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } })
