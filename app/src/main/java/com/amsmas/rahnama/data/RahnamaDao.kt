@@ -20,11 +20,17 @@ interface RahnamaDao {
     @Query("SELECT * FROM persons ORDER BY fullName COLLATE NOCASE")
     fun observePersons(): Flow<List<PersonEntity>>
 
+    @Query("SELECT * FROM persons WHERE phoneNumber = :phone LIMIT 1")
+    suspend fun findPersonByPhone(phone: String): PersonEntity?
+
     @Query("SELECT * FROM properties ORDER BY createdAt DESC")
     fun observeProperties(): Flow<List<PropertyEntity>>
 
     @Query("SELECT * FROM client_requests WHERE requestStatus = 'active' ORDER BY createdAt DESC")
     fun observeActiveRequests(): Flow<List<ClientRequestEntity>>
+
+    @Query("SELECT COUNT(*) FROM properties")
+    suspend fun countProperties(): Int
 
     @Query("SELECT COUNT(*) FROM properties WHERE status = 'available'")
     fun observeAvailablePropertyCount(): Flow<Int>
