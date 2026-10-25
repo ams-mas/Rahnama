@@ -366,6 +366,7 @@ private fun HomePeople(
     onCall: (PersonEntity) -> Unit
 ) {
     var query by remember { mutableStateOf("") }
+    var expandedPersonId by remember { mutableStateOf<Long?>(null) }
     val filteredPeople = remember(people, query) {
         val term = query.trim()
         if (term.isBlank()) people else people.filter {
@@ -406,35 +407,57 @@ private fun HomePeople(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 items(filteredPeople, key = { it.id }) { person ->
+                    val isExpanded = expandedPersonId == person.id
                     val propertyCount = properties.count { it.ownerId == person.id }
                     val requestCount = requests.count { it.clientId == person.id }
-                    Card(Modifier.fillMaxWidth()) {
+                    Card(
+                        modifier = Modifier.fillMaxWidth().clickable {
+                            expandedPersonId = if (isExpanded) null else person.id
+                        }
+                    ) {
                         Column(
-                            Modifier.fillMaxWidth().padding(14.dp),
-                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                            Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
-                                Column(Modifier.weight(1f)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                            ) {
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                     Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                                    Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.labelMedium)
+                                    val phoneLine = listOfNotNull(
+                                        person.phoneNumber.takeIf { it.isNotBlank() },
+                                        person.alternatePhone?.takeIf { it.isNotBlank() }
+                                    ).joinToString(" - ")
+                                    Text(phoneLine, style = MaterialTheme.typography.bodyMedium)
                                 }
                                 IconButton(onClick = { onCall(person) }) {
                                     Icon(Icons.Default.Call, contentDescription = "تماس با ${person.fullName}")
                                 }
+                                if (isExpanded) {
+                                    Icon(Icons.Default.ExpandLess, contentDescription = "بستن جزئیات")
+                                } else {
+                                    Icon(Icons.Default.ExpandMore, contentDescription = "نمایش جزئیات")
+                                }
                             }
-                            Text("شماره اصلی: " + person.phoneNumber)
-                            person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
-                                Text("شماره دوم: " + it, style = MaterialTheme.typography.bodySmall)
+                            if (isExpanded) {
+                                HorizontalDivider()
+                                Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium)
+                                val location = listOfNotNull(person.province, person.city)
+                                    .filter { it.isNotBlank() }.joinToString("، ")
+                                if (location.isNotBlank()) Text("موقعیت: $location", style = MaterialTheme.typography.bodySmall)
+                                person.address?.takeIf { it.isNotBlank() }?.let {
+                                    Text("آدرس: $it", style = MaterialTheme.typography.bodySmall)
+                                }
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    AssistChip(onClick = { onSelect(person) }, label = { Text("املاک: $propertyCount") })
+                                    AssistChip(onClick = { onSelect(person) }, label = { Text("تقاضاها: $requestCount") })
+                                }
+                                TextButton(onClick = { onSelect(person) }) {
+                                    Text("مشاهده پروفایل و سوابق")
+                                }
                             }
-                            val location = listOfNotNull(person.province, person.city)
-                                .filter { it.isNotBlank() }.joinToString("، ")
-                            if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall)
-                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                AssistChip(onClick = { onSelect(person) }, label = { Text("املاک: $propertyCount") })
-                                AssistChip(onClick = { onSelect(person) }, label = { Text("تقاضاهای فعال: $requestCount") })
-                            }
-                            TextButton(onClick = { onSelect(person) }) { Text("مشاهدهٔ پروفایل و سوابق") }
                         }
                     }
                 }
