@@ -41,6 +41,8 @@ data class PropertyEntity(
     val bedrooms: Int? = null,
     val bathrooms: Int? = null,
     val constructionType: String? = null,
+    val propertyTypeDetails: String? = null,
+    val kotahAvailable: Boolean? = null,
     val mapLocationNumber: String? = null,
     val directionPosition: String? = null,
     val kitchenAvailable: Boolean? = null,
