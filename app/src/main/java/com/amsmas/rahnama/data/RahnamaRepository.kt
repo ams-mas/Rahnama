@@ -10,8 +10,10 @@ class RahnamaRepository(private val dao: RahnamaDao) {
     val people: Flow<List<PersonEntity>> = dao.observePersons()
     val properties: Flow<List<PropertyEntity>> = dao.observeProperties()
     val activeRequests: Flow<List<ClientRequestEntity>> = dao.observeActiveRequests()
+    val allRequests: Flow<List<ClientRequestEntity>> = dao.observeAllRequests()
 
     suspend fun findPersonByPhone(phone: String): PersonEntity? = dao.findPersonByPhone(phone)
+    suspend fun findOtherPersonByPhone(phone: String, personId: Long): PersonEntity? = dao.findOtherPersonByPhone(phone, personId)
     suspend fun insertPerson(person: PersonEntity): Long = dao.insertPerson(person)
     suspend fun updatePerson(person: PersonEntity) = dao.updatePerson(person)
     suspend fun updatePersonContactDetails(personId: Long, alternatePhone: String?, address: String?) =
