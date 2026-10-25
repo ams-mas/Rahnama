@@ -178,22 +178,22 @@ private fun RahnamaWorkingApp() {
                     } else scope.launch {
                         try {
                             val existingOwner = viewModel.findPersonByPhone(v[1].trim())
-                            val ownerId = existingOwner?.id ?: dao.insertPerson(PersonEntity(
+                            val ownerId = existingOwner?.id ?: viewModel.insertPerson(PersonEntity(
                                 fullName = v[0].trim(), phoneNumber = v[1].trim(),
                                 alternatePhone = v[2].trim().ifBlank { null },
                                 province = v[5].trim(), city = v[6].trim(),
                                 address = v[8].trim().ifBlank { null }, roles = "owner"
                             ))
                             if (existingOwner != null && v[2].isNotBlank()) {
-                                dao.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
+                                viewModel.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
                             }
-                            var sequence = dao.countProperties() + 1
+                            var sequence = viewModel.countProperties() + 1
                             var propertyCode = PropertyCodeGenerator.candidate(sequence, homeJalaliYear())
-                            while (dao.propertyCodeExists(propertyCode)) {
+                            while (viewModel.propertyCodeExists(propertyCode)) {
                                 sequence++
                                 propertyCode = PropertyCodeGenerator.candidate(sequence, homeJalaliYear())
                             }
-                            dao.insertProperty(PropertyEntity(
+                            viewModel.insertProperty(PropertyEntity(
                                 propertyCode = propertyCode, ownerId = ownerId,
                                 propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
                                 province = v[5].trim(), city = v[6].trim(),
@@ -232,14 +232,14 @@ private fun RahnamaWorkingApp() {
                             alert = validationError
                         } else scope.launch {
                             try {
-                                val existingClient = dao.findPersonByPhone(v[1].trim())
-                                val clientId = existingClient?.id ?: dao.insertPerson(PersonEntity(
+                                val existingClient = viewModel.findPersonByPhone(v[1].trim())
+                                val clientId = existingClient?.id ?: viewModel.insertPerson(PersonEntity(
                                     fullName = v[0].trim(), phoneNumber = v[1].trim(),
                                     alternatePhone = v[20].trim().ifBlank { null },
                                     province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
                                 ))
-                                if (existingClient != null && v[20].isNotBlank()) dao.updatePersonContactDetails(existingClient.id, v[20].trim(), null)
-                                dao.insertRequest(ClientRequestEntity(
+                                if (existingClient != null && v[20].isNotBlank()) viewModel.updatePersonContactDetails(existingClient.id, v[20].trim(), null)
+                                viewModel.insertRequest(ClientRequestEntity(
                                     clientId = clientId, listingType = homeMapListing(v[2]), propertyType = homeMapProperty(v[3]),
                                     budgetMin = v[4].trim().toDoubleOrNull(), budgetMax = v[5].trim().toDoubleOrNull(),
                                     maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
@@ -263,7 +263,7 @@ private fun RahnamaWorkingApp() {
                         if (v[0].isBlank() || v[1].isBlank()) alert = "نام و شماره تماس ضروری است."
                         else scope.launch {
                             try {
-                                dao.insertPerson(PersonEntity(
+                                viewModel.insertPerson(PersonEntity(
                                     fullName = v[0].trim(), phoneNumber = v[1].trim(),
                                     alternatePhone = v[2].trim().ifBlank { null },
                                     province = v[3].trim().ifBlank { null }, city = v[4].trim().ifBlank { null },
