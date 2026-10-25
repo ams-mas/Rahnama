@@ -1,6 +1,8 @@
 package com.amsmas.rahnama
 
 import android.os.Bundle
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -47,6 +49,8 @@ private fun RahnamaWorkingApp() {
     var tab by remember { mutableIntStateOf(0) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
+    var editingPerson by remember { mutableStateOf<PersonEntity?>(null) }
+    var selectedPersonForCall by remember { mutableStateOf<PersonEntity?>(null) }
     var alert by remember { mutableStateOf<String?>(null) }
     val backupLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.CreateDocument("application/vnd.sqlite3")
@@ -157,128 +161,164 @@ private fun RahnamaWorkingApp() {
             3 -> HomePeople(
                 Modifier.padding(padding),
                 people = people,
-                onAdd = { form = "person" },
-                onSelect = { selectedPerson = it }
+                properties = properties,
+                requests = requests,
+                onAdd = { editingPerson = null; form = "person" },
+                onSelect = { selectedPerson = it },
+                onCall = { person ->
+                    if (person.alternatePhone.isNullOrBlank()) dialPersonNumber(context, person.phoneNumber) { alert = it }
+                    else selectedPersonForCall = person
+                }
             )
             4 -> HomeMatching(Modifier.padding(padding), properties, requests, people)
             else -> HomeSettings(Modifier.padding(padding), onBackup = { backupLauncher.launch("rahnama-backup.db") }, onRestore = { restoreLauncher.launch(arrayOf("*/*")) })
         }
     }
 
-    if (form.isNotBlank()) {
-        if (form == "property") {
-            PropertyEntryDialog(
-                onDismiss = { form = "" },
-                onSave = { v ->
-                    val validationError = validatePropertyForm(v)
-                    if (v[0].isBlank() || v[1].isBlank() || v[3].isBlank() || v[4].isBlank() || v[5].isBlank() || v[6].isBlank()) {
-                        alert = "نام مالک، شماره تماس، نوع ملک، نوع معامله، ولایت و شهر ضروری است."
-                    } else if (validationError != null) {
-                        alert = validationError
-                    } else {
-                        val ownerDraft = PersonEntity(
-                            fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                            alternatePhone = v[2].trim().ifBlank { null },
-                            province = v[5].trim(), city = v[6].trim(),
-                            address = v[8].trim().ifBlank { null }, roles = "owner"
+    if (form == "person") {
+        PersonEntryDialog(
+            initialPerson = editingPerson,
+            onDismiss = { form = ""; editingPerson = null },
+            onSave = { person ->
+                if (editingPerson == null) {
+                    viewModel.savePerson(person) { result ->
+                        result.fold(
+                            onSuccess = { form = ""; alert = "شخص با موفقیت ثبت شد." },
+                            onFailure = { alert = "ثبت شخص ناموفق بود؛ شماره تماس را بررسی کنید." }
                         )
-                        val propertyDraft = PropertyEntity(
-                            propertyCode = "", ownerId = 0,
-                            propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
-                            province = v[5].trim(), city = v[6].trim(),
-                            district = v[7].trim().ifBlank { null }, address = v[8].trim().ifBlank { null },
-                            mapLocationNumber = v[9].trim().ifBlank { null }, directionPosition = v[10].trim().ifBlank { null },
-                            priceAmount = v[11].trim().toDoubleOrNull(), monthlyRent = v[12].trim().toDoubleOrNull(),
-                            growyCondition = homeMapGrowy(v[13]), bedrooms = v[14].trim().toIntOrNull(),
-                            kitchenAvailable = homeNullableYesNo(v[15]), electricityAvailable = homeNullableYesNo(v[16]),
-                            borewellAvailable = homeNullableYesNo(v[17]), guestHouseAvailable = homeNullableYesNo(v[18]),
-                            guestHouseSeparateEntrance = when {
-                                v[19].contains("جدا") -> true
-                                v[19].contains("داخل") -> false
-                                else -> null
-                            },
-                            landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
-                            neighborWallSides = v[22].trim().toIntOrNull(), areaValue = v[23].trim().toDoubleOrNull(),
-                            description = v[24].trim().ifBlank { null }, constructionType = null,
-                            propertyTypeDetails = v[25].trim().ifBlank { null }, kotahAvailable = homeNullableYesNo(v[26])
+                    }
+                } else {
+                    viewModel.updatePerson(person) { result ->
+                        result.fold(
+                            onSuccess = { form = ""; editingPerson = null; alert = "اطلاعات شخص به‌روزرسانی شد." },
+                            onFailure = { alert = "ویرایش شخص ناموفق بود؛ اطلاعات را بررسی کنید." }
                         )
-                        viewModel.saveProperty(ownerDraft, propertyDraft, homeJalaliYear()) { result ->
-                            result.fold(
-                                onSuccess = { code -> form = ""; alert = "ملک ذخیره شد. کد ملک: " + code },
-                                onFailure = { alert = "ذخیره ملک ناموفق بود؛ اطلاعات را بررسی کنید." }
-                            )
-                        }
                     }
                 }
-            )
-        } else {
-            val fields = if (form == "request") requestFields else personFields
-            HomeEntryDialog(if (form == "request") "ثبت تقاضای مشتری" else "ثبت شخص", fields,
-                onDismiss = { form = "" },
-                onSave = { v ->
-                    if (form == "request") {
-                        val validationError = validateRequestForm(v)
-                        if (v[0].isBlank() || v[1].isBlank() || v[2].isBlank() || v[3].isBlank() || v[9].isBlank()) {
-                            alert = "نام، شماره تماس، نوع تقاضا، نوع ملک و ولایت ضروری است."
-                        } else if (validationError != null) {
-                            alert = validationError
-                        } else {
-                            val clientDraft = PersonEntity(
-                                fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                                alternatePhone = v[20].trim().ifBlank { null },
-                                province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
-                            )
-                            val requestDraft = ClientRequestEntity(
-                                clientId = 0, listingType = homeMapListing(v[2]), propertyType = homeMapProperty(v[3]),
-                                budgetMin = v[4].trim().toDoubleOrNull(), budgetMax = v[5].trim().toDoubleOrNull(),
-                                maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
-                                growyCondition = homeMapRequestGrowy(v[8]), province = v[9].trim(),
-                                city = v[10].trim().ifBlank { null }, district = v[11].trim().ifBlank { null },
-                                bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim(),
-                                kitchenRequired = homeNullableYesNo(v[14]), electricityRequired = homeNullableYesNo(v[15]),
-                                borewellRequired = homeNullableYesNo(v[16]),
-                                separateGuestEntranceRequired = when {
-                                    v[17].contains("مهم نیست") || v[17].isBlank() -> null
-                                    v[17].contains("ضروری نیست") -> false
-                                    v[17].contains("ضروری") -> true
-                                    else -> null
-                                },
-                                mapLocationNumber = v[18].trim().ifBlank { null }, requestedAddressType = v[19].trim().ifBlank { null }
-                            )
-                            viewModel.saveRequest(clientDraft, requestDraft) { result ->
-                                result.fold(
-                                    onSuccess = { form = ""; alert = "تقاضا ذخیره شد." },
-                                    onFailure = { alert = "ذخیره تقاضا ناموفق بود؛ اطلاعات را بررسی کنید." }
-                                )
-                            }
-                        }
-                    } else {
-                        if (v[0].isBlank() || v[1].isBlank()) {
-                            alert = "نام و شماره تماس ضروری است."
-                        } else {
-                            val person = PersonEntity(
-                                fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                                alternatePhone = v[2].trim().ifBlank { null },
-                                province = v[3].trim().ifBlank { null }, city = v[4].trim().ifBlank { null },
-                                address = v[5].trim().ifBlank { null }, roles = homeMapRole(v[6])
-                            )
-                            viewModel.savePerson(person) { result ->
-                                result.fold(
-                                    onSuccess = { form = ""; alert = "شخص ذخیره شد." },
-                                    onFailure = { alert = "ذخیره شخص ناموفق بود؛ شماره تماس را بررسی کنید." }
-                                )
-                            }
-                        }
+            }
+        )
+    } else if (form == "property") {
+        PropertyEntryDialog(
+            onDismiss = { form = "" },
+            onSave = { v ->
+                val validationError = validatePropertyForm(v)
+                if (v[0].isBlank() || v[1].isBlank() || v[3].isBlank() || v[4].isBlank() || v[5].isBlank() || v[6].isBlank()) {
+                    alert = "نام مالک، شماره تماس، نوع ملک، نوع معامله، ولایت و شهر ضروری است."
+                } else if (validationError != null) {
+                    alert = validationError
+                } else {
+                    val ownerDraft = PersonEntity(
+                        fullName = v[0].trim(), phoneNumber = v[1].trim(),
+                        alternatePhone = v[2].trim().ifBlank { null },
+                        province = v[5].trim(), city = v[6].trim(),
+                        address = v[8].trim().ifBlank { null }, roles = "owner"
+                    )
+                    val propertyDraft = PropertyEntity(
+                        propertyCode = "", ownerId = 0,
+                        propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
+                        province = v[5].trim(), city = v[6].trim(),
+                        district = v[7].trim().ifBlank { null }, address = v[8].trim().ifBlank { null },
+                        mapLocationNumber = v[9].trim().ifBlank { null }, directionPosition = v[10].trim().ifBlank { null },
+                        priceAmount = v[11].trim().toDoubleOrNull(), monthlyRent = v[12].trim().toDoubleOrNull(),
+                        growyCondition = homeMapGrowy(v[13]), bedrooms = v[14].trim().toIntOrNull(),
+                        kitchenAvailable = homeNullableYesNo(v[15]), electricityAvailable = homeNullableYesNo(v[16]),
+                        borewellAvailable = homeNullableYesNo(v[17]), guestHouseAvailable = homeNullableYesNo(v[18]),
+                        guestHouseSeparateEntrance = when {
+                            v[19].contains("جدا") -> true
+                            v[19].contains("داخل") -> false
+                            else -> null
+                        },
+                        landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
+                        neighborWallSides = v[22].trim().toIntOrNull(), areaValue = v[23].trim().toDoubleOrNull(),
+                        description = v[24].trim().ifBlank { null }, constructionType = null,
+                        propertyTypeDetails = v[25].trim().ifBlank { null }, kotahAvailable = homeNullableYesNo(v[26])
+                    )
+                    viewModel.saveProperty(ownerDraft, propertyDraft, homeJalaliYear()) { result ->
+                        result.fold(
+                            onSuccess = { code -> form = ""; alert = "ملک ذخیره شد. کد ملک: " + code },
+                            onFailure = { alert = "ذخیره ملک ناموفق بود؛ اطلاعات را بررسی کنید." }
+                        )
                     }
-                })
-        }
+                }
+            }
+        )
+    } else if (form == "request") {
+        HomeEntryDialog("ثبت تقاضای مشتری", requestFields,
+            onDismiss = { form = "" },
+            onSave = { v ->
+                val validationError = validateRequestForm(v)
+                if (v[0].isBlank() || v[1].isBlank() || v[2].isBlank() || v[3].isBlank() || v[9].isBlank()) {
+                    alert = "نام، شماره تماس، نوع تقاضا، نوع ملک و ولایت ضروری است."
+                } else if (validationError != null) {
+                    alert = validationError
+                } else {
+                    val clientDraft = PersonEntity(
+                        fullName = v[0].trim(), phoneNumber = v[1].trim(),
+                        alternatePhone = v[20].trim().ifBlank { null },
+                        province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
+                    )
+                    val requestDraft = ClientRequestEntity(
+                        clientId = 0, listingType = homeMapListing(v[2]), propertyType = homeMapProperty(v[3]),
+                        budgetMin = v[4].trim().toDoubleOrNull(), budgetMax = v[5].trim().toDoubleOrNull(),
+                        maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
+                        growyCondition = homeMapRequestGrowy(v[8]), province = v[9].trim(),
+                        city = v[10].trim().ifBlank { null }, district = v[11].trim().ifBlank { null },
+                        bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim(),
+                        kitchenRequired = homeNullableYesNo(v[14]), electricityRequired = homeNullableYesNo(v[15]),
+                        borewellRequired = homeNullableYesNo(v[16]),
+                        separateGuestEntranceRequired = when {
+                            v[17].contains("مهم نیست") || v[17].isBlank() -> null
+                            v[17].contains("ضروری نیست") -> false
+                            v[17].contains("ضروری") -> true
+                            else -> null
+                        },
+                        mapLocationNumber = v[18].trim().ifBlank { null }, requestedAddressType = v[19].trim().ifBlank { null }
+                    )
+                    viewModel.saveRequest(clientDraft, requestDraft) { result ->
+                        result.fold(
+                            onSuccess = { form = ""; alert = "تقاضا ذخیره شد." },
+                            onFailure = { alert = "ذخیره تقاضا ناموفق بود؛ اطلاعات را بررسی کنید." }
+                        )
+                    }
+                }
+            }
+        )
     }
     selectedPerson?.let { person ->
         PersonDetailDialog(
-            person = person,
+            person = people.firstOrNull { it.id == person.id } ?: person,
             properties = properties.filter { it.ownerId == person.id },
             requests = requests.filter { it.clientId == person.id },
-            onDismiss = { selectedPerson = null }
+            onDismiss = { selectedPerson = null },
+            onCall = { p ->
+                if (p.alternatePhone.isNullOrBlank()) dialPersonNumber(context, p.phoneNumber) { alert = it }
+                else selectedPersonForCall = p
+            },
+            onSms = { p -> openSms(context, p.phoneNumber) { alert = it } },
+            onWhatsApp = { p -> openWhatsApp(context, p.phoneNumber) { alert = it } },
+            onEdit = { p -> selectedPerson = null; editingPerson = p; form = "person" }
+        )
+    }
+    selectedPersonForCall?.let { person ->
+        AlertDialog(
+            onDismissRequest = { selectedPersonForCall = null },
+            title = { Text("با کدام شماره تماس می‌گیرید؟") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = {
+                        val phone = person.phoneNumber
+                        selectedPersonForCall = null
+                        dialPersonNumber(context, phone) { alert = it }
+                    }, modifier = Modifier.fillMaxWidth()) { Text("شماره اصلی: " + person.phoneNumber) }
+                    person.alternatePhone?.takeIf { it.isNotBlank() }?.let { alternate ->
+                        OutlinedButton(onClick = {
+                            selectedPersonForCall = null
+                            dialPersonNumber(context, alternate) { alert = it }
+                        }, modifier = Modifier.fillMaxWidth()) { Text("شماره دوم: " + alternate) }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { selectedPersonForCall = null }) { Text("لغو") } }
         )
     }
     alert?.let { AlertDialog(onDismissRequest = { alert = null }, title = { Text("رهنمای معاملات") }, text = { Text(it) }, confirmButton = { TextButton(onClick = { alert = null }) { Text("تأیید") } }) }
