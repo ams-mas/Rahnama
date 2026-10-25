@@ -99,7 +99,10 @@ private fun RahnamaWorkingApp() {
                     it.guestHouseSeparateEntrance?.let { value -> "ورودی مهمان‌خانه: " + if (value) "جداگانه" else "از داخل تعمیر" } ?: "",
                     it.landBoundaryType?.let { type -> "وضعیت زمین: " + type } ?: "",
                     it.hasOwnWall?.let { value -> "دیوار از خود: " + homeYesNoText(value) } ?: "",
-                    it.neighborWallSides?.let { sides -> "طرف دیوار همسایه: " + sides } ?: ""
+                    it.neighborWallSides?.let { sides -> "طرف دیوار همسایه: " + sides } ?: "",
+                    it.constructionType?.let { type -> "نوع تعمیر: " + type } ?: "",
+                    it.areaValue?.let { area -> "مساحت: " + area } ?: "",
+                    it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
             }, "＋ ثبت ملک") { form = "property" }
             2 -> HomeRecords(Modifier.padding(padding), "تقاضاهای مشتریان", requests.map {
