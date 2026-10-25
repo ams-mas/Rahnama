@@ -54,7 +54,7 @@ private fun RahnamaWorkingApp() {
     val personFields = listOf("نام کامل *", "شماره تماس *", "شماره دوم", "ولایت", "شهر", "آدرس", "نقش: مالک/خریدار/مستأجر/متقاضی گروی")
 
     Scaffold(
-        topBar = { TopAppBar(title = { Column { Text("رهنمای معاملات", fontWeight = FontWeight.Bold); Text("مدیریت املاک افغانستان", fontSize = 12.sp) } }) },
+        topBar = { TopAppBar(title = {}, colors = TopAppBarDefaults.topAppBarColors(containerColor = MaterialTheme.colorScheme.surface)) },
         bottomBar = { NavigationBar { nav.forEachIndexed { index, item ->
             NavigationBarItem(selected = tab == index, onClick = { tab = index }, icon = { Icon(item.icon, contentDescription = item.title) }, label = { Text(item.title) })
         } } }
