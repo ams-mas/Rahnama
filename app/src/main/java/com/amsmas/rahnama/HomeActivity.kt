@@ -97,10 +97,12 @@ private fun RahnamaWorkingApp() {
                     it.borewellAvailable?.let { value -> "برمه: " + homeYesNoText(value) } ?: "",
                     it.guestHouseAvailable?.let { value -> "مهمان‌خانه: " + homeYesNoText(value) } ?: "",
                     it.guestHouseSeparateEntrance?.let { value -> "ورودی مهمان‌خانه: " + if (value) "جداگانه" else "از داخل تعمیر" } ?: "",
+                    it.kotahAvailable?.let { value -> "کوته: " + homeYesNoText(value) } ?: "",
                     it.landBoundaryType?.let { type -> "وضعیت زمین: " + type } ?: "",
                     it.hasOwnWall?.let { value -> "دیوار از خود: " + homeYesNoText(value) } ?: "",
                     it.neighborWallSides?.let { sides -> "طرف دیوار همسایه: " + sides } ?: "",
                     it.constructionType?.let { type -> "نوع تعمیر: " + type } ?: "",
+                    it.propertyTypeDetails?.let { details -> "مشخصات: " + details } ?: "",
                     it.areaValue?.let { area -> "مساحت: " + area } ?: "",
                     it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
