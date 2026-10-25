@@ -49,8 +49,28 @@ private fun RahnamaWorkingApp() {
         RahnamaNav("تطبیق", Icons.Default.Search),
         RahnamaNav("تنظیمات", Icons.Default.Settings)
     )
-    val propertyFields = listOf("نام مالک *", "شماره تماس مالک *", "نوع ملک: خانه/آپارتمان/زمین/دکان/مارکیت/باغ", "نوع معامله: فروشی/کرایی/گروی", "ولایت *", "شهر *", "ناحیه", "قیمت یا مبلغ گروی", "کرایه ماهانه", "شرایط گروی: اهل سنت/اهل تشیع/نامشخص", "تعداد اتاق", "مساحت", "توضیحات")
-    val requestFields = listOf("نام مشتری *", "شماره تماس *", "نوع تقاضا: خرید/کرایه/گروی", "نوع ملک: خانه/آپارتمان/زمین/دکان/مارکیت/باغ", "حداقل بودجه", "حداکثر بودجه", "حداکثر کرایه ماهانه", "مبلغ گروی", "شرایط گروی: اهل سنت/اهل تشیع/هرکدام", "ولایت *", "شهر", "ناحیه", "حداقل اتاق", "توضیحات")
+    val propertyFields = listOf(
+        "نام صاحب خانه/زمین *", "شماره تماس اول مالک *", "شماره تماس دوم مالک",
+        "نوع ملک: تعمیر/آپارتمان/زمین/دکان/مارکیت/باغ", "نوع معامله: فروشی/کرایی/گروی",
+        "ولایت *", "شهر *", "ناحیه/گذر", "آدرس تشریحی",
+        "شماره موقعیت روی نقشه (اختیاری)", "چپه/راسته/نامشخص",
+        "قیمت فروش یا مبلغ گروی", "مقدار کرایه ماهانه", "شرایط گروی: اهل سنت/اهل تشیع/نامشخص",
+        "تعداد اتاق", "آشپزخانه: دارد/ندارد", "برق: دارد/ندارد", "برمه: دارد/ندارد",
+        "مهمان‌خانه: دارد/ندارد", "ورودی مهمان‌خانه: جداگانه/از داخل تعمیر",
+        "زمین: خالی/چهار دیواری", "دیوار از خود دارد؟ دارد/ندارد",
+        "چند طرف دیوار همسایه است؟ (۰ تا ۳)", "مساحت", "توضیحات",
+        "نوع تعمیر/ساختمان (اختیاری)"
+    )
+    val requestFields = listOf(
+        "نام مشتری *", "شماره تماس اول مشتری *", "نوع تقاضا: خرید/کرایه/گروی",
+        "نوع ملک: تعمیر/آپارتمان/زمین/دکان/مارکیت/باغ", "حداقل بودجه", "حداکثر بودجه",
+        "حداکثر کرایه ماهانه", "مبلغ گروی", "شرایط گروی: اهل سنت/اهل تشیع/هرکدام",
+        "ولایت *", "شهر", "ناحیه", "حداقل تعداد اتاق", "توضیحات",
+        "آشپزخانه مورد نیاز: دارد/ندارد/مهم نیست", "برق مورد نیاز: دارد/ندارد/مهم نیست",
+        "برمه مورد نیاز: دارد/ندارد/مهم نیست", "ورودی جداگانه مهمان‌خانه: ضروری/ضروری نیست/مهم نیست",
+        "شماره موقعیت روی نقشه (اختیاری)", "آدرس مورد نظر: خانه/زمین/هرکدام",
+        "شماره تماس دوم مشتری"
+    )
     val personFields = listOf("نام کامل *", "شماره تماس *", "شماره دوم", "ولایت", "شهر", "آدرس", "نقش: مالک/خریدار/مستأجر/متقاضی گروی")
 
     Scaffold(
@@ -117,22 +137,44 @@ private fun RahnamaWorkingApp() {
                             alert = "نام مالک، شماره تماس، ولایت و شهر ضروری است."
                         } else scope.launch {
                             try {
-                                val ownerId = dao.findPersonByPhone(v[1].trim())?.id ?: dao.insertPerson(PersonEntity(
+                                val existingOwner = dao.findPersonByPhone(v[1].trim())
+                                val ownerId = existingOwner?.id ?: dao.insertPerson(PersonEntity(
                                     fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                                    province = v[4].trim(), city = v[5].trim(), roles = "owner"
+                                    alternatePhone = v[2].trim().ifBlank { null },
+                                    province = v[5].trim(), city = v[6].trim(),
+                                    address = v[8].trim().ifBlank { null }, roles = "owner"
                                 ))
+                                if (existingOwner != null && v[2].isNotBlank()) {
+                                    dao.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
+                                }
                                 val propertyCode = PropertyCodeGenerator.candidate(dao.countProperties() + 1, homeJalaliYear())
                                 dao.insertProperty(PropertyEntity(
                                     propertyCode = propertyCode, ownerId = ownerId,
-                                    propertyType = homeMapProperty(v[2]), listingType = homeMapListing(v[3]),
-                                    province = v[4].trim(), city = v[5].trim(),
-                                    district = v[6].trim().ifBlank { null },
-                                    priceAmount = v[7].trim().toDoubleOrNull(),
-                                    monthlyRent = v[8].trim().toDoubleOrNull(),
-                                    growyCondition = homeMapGrowy(v[9]),
-                                    bedrooms = v[10].trim().toIntOrNull(),
-                                    areaValue = v[11].trim().toDoubleOrNull(),
-                                    description = v[12].trim()
+                                    propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
+                                    province = v[5].trim(), city = v[6].trim(),
+                                    district = v[7].trim().ifBlank { null },
+                                    address = v[8].trim().ifBlank { null },
+                                    mapLocationNumber = v[9].trim().ifBlank { null },
+                                    directionPosition = v[10].trim().ifBlank { null },
+                                    priceAmount = v[11].trim().toDoubleOrNull(),
+                                    monthlyRent = v[12].trim().toDoubleOrNull(),
+                                    growyCondition = homeMapGrowy(v[13]),
+                                    bedrooms = v[14].trim().toIntOrNull(),
+                                    kitchenAvailable = homeNullableYesNo(v[15]),
+                                    electricityAvailable = homeNullableYesNo(v[16]),
+                                    borewellAvailable = homeNullableYesNo(v[17]),
+                                    guestHouseAvailable = homeNullableYesNo(v[18]),
+                                    guestHouseSeparateEntrance = when {
+                                        v[19].contains("جدا") -> true
+                                        v[19].contains("داخل") -> false
+                                        else -> null
+                                    },
+                                    landBoundaryType = v[20].trim().ifBlank { null },
+                                    hasOwnWall = homeNullableYesNo(v[21]),
+                                    neighborWallSides = v[22].trim().toIntOrNull(),
+                                    areaValue = v[23].trim().toDoubleOrNull(),
+                                    description = v[24].trim().ifBlank { null },
+                                    constructionType = v[25].trim().ifBlank { null }
                                 ))
                                 form = ""
                                 alert = "ملک ذخیره شد. کد ملک: " + propertyCode
@@ -143,10 +185,15 @@ private fun RahnamaWorkingApp() {
                         if (v[0].isBlank() || v[1].isBlank() || v[9].isBlank()) alert = "نام، شماره تماس و ولایت ضروری است."
                         else scope.launch {
                             try {
-                                val clientId = dao.findPersonByPhone(v[1].trim())?.id ?: dao.insertPerson(PersonEntity(
-                                    fullName = v[0].trim(), phoneNumber = v[1].trim(), province = v[9].trim(),
-                                    city = v[10].trim().ifBlank { null }, roles = "applicant"
+                                val existingClient = dao.findPersonByPhone(v[1].trim())
+                                val clientId = existingClient?.id ?: dao.insertPerson(PersonEntity(
+                                    fullName = v[0].trim(), phoneNumber = v[1].trim(),
+                                    alternatePhone = v[20].trim().ifBlank { null },
+                                    province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
                                 ))
+                                if (existingClient != null && v[20].isNotBlank()) {
+                                    dao.updatePersonContactDetails(existingClient.id, v[20].trim(), null)
+                                }
                                 dao.insertRequest(ClientRequestEntity(
                                     clientId = clientId, listingType = homeMapListing(v[2]),
                                     propertyType = homeMapProperty(v[3]),
@@ -154,7 +201,18 @@ private fun RahnamaWorkingApp() {
                                     maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
                                     growyCondition = homeMapRequestGrowy(v[8]), province = v[9].trim(),
                                     city = v[10].trim().ifBlank { null }, district = v[11].trim().ifBlank { null },
-                                    bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim()
+                                    bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim(),
+                                    kitchenRequired = homeNullableYesNo(v[14]),
+                                    electricityRequired = homeNullableYesNo(v[15]),
+                                    borewellRequired = homeNullableYesNo(v[16]),
+                                    separateGuestEntranceRequired = when {
+                                        v[17].contains("مهم نیست") || v[17].isBlank() -> null
+                                        v[17].contains("ضروری نیست") -> false
+                                        v[17].contains("ضروری") -> true
+                                        else -> null
+                                    },
+                                    mapLocationNumber = v[18].trim().ifBlank { null },
+                                    requestedAddressType = v[19].trim().ifBlank { null }
                                 ))
                                 form = ""; alert = "تقاضا ذخیره شد."
                             } catch (e: Exception) { alert = "ذخیره تقاضا ناموفق بود؛ اطلاعات را بررسی کنید." }
