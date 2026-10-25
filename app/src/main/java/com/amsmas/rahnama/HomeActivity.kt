@@ -46,7 +46,8 @@ private fun RahnamaWorkingApp() {
         RahnamaNav("املاک", Icons.Default.Apartment),
         RahnamaNav("تقاضاها", Icons.Default.Assignment),
         RahnamaNav("اشخاص", Icons.Default.People),
-        RahnamaNav("تطبیق", Icons.Default.Search)
+        RahnamaNav("تطبیق", Icons.Default.Search),
+        RahnamaNav("تنظیمات", Icons.Default.Settings)
     )
     val propertyFields = listOf("نام مالک *", "شماره تماس مالک *", "نوع ملک: خانه/آپارتمان/زمین/دکان/مارکیت/باغ", "نوع معامله: فروشی/کرایی/گروی", "ولایت *", "شهر *", "ناحیه", "قیمت یا مبلغ گروی", "کرایه ماهانه", "شرایط گروی: اهل سنت/اهل تشیع/نامشخص", "تعداد اتاق", "مساحت", "توضیحات")
     val requestFields = listOf("نام مشتری *", "شماره تماس *", "نوع تقاضا: خرید/کرایه/گروی", "نوع ملک: خانه/آپارتمان/زمین/دکان/مارکیت/باغ", "حداقل بودجه", "حداکثر بودجه", "حداکثر کرایه ماهانه", "مبلغ گروی", "شرایط گروی: اهل سنت/اهل تشیع/هرکدام", "ولایت *", "شهر", "ناحیه", "حداقل اتاق", "توضیحات")
@@ -69,7 +70,8 @@ private fun RahnamaWorkingApp() {
             3 -> HomeRecords(Modifier.padding(padding), "اشخاص و مشتریان", people.map {
                 listOf(it.fullName, it.phoneNumber, (it.province ?: "") + " " + (it.city ?: ""), "نقش: " + it.roles)
             }, "＋ ثبت شخص") { form = "person" }
-            else -> HomeMatching(Modifier.padding(padding), properties, requests)
+            4 -> HomeMatching(Modifier.padding(padding), properties, requests)
+            else -> HomeSettings(Modifier.padding(padding))
         }
     }
 
@@ -176,6 +178,23 @@ private fun HomeRecords(modifier: Modifier, title: String, rows: List<List<Strin
         }
     }
 }
+@Composable
+private fun HomeSettings(modifier: Modifier) {
+    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("تنظیمات", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+        Text("این بخش برای تنظیمات آینده برنامه آماده شده است.")
+        Card(Modifier.fillMaxWidth()) {
+            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                Icon(Icons.Default.Settings, contentDescription = null)
+                Column {
+                    Text("تنظیمات برنامه", fontWeight = FontWeight.SemiBold)
+                    Text("گزینه‌های تنظیمات بعداً در این صفحه اضافه خواهند شد.")
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun HomeMatching(modifier: Modifier, properties: List<PropertyEntity>, requests: List<ClientRequestEntity>) {
     LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
