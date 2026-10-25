@@ -85,6 +85,8 @@ data class ClientRequestEntity(
     val district: String? = null,
     val bedroomsMin: Int? = null,
     val kitchenRequired: Boolean? = null,
+    val guestHouseRequired: Boolean? = null,
+    val kotahRequired: Boolean? = null,
     val electricityRequired: Boolean? = null,
     val borewellRequired: Boolean? = null,
     val separateGuestEntranceRequired: Boolean? = null,
