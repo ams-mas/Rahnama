@@ -139,8 +139,11 @@ private fun RahnamaWorkingApp() {
             PropertyEntryDialog(
                 onDismiss = { form = "" },
                 onSave = { v ->
-                    if (v[0].isBlank() || v[1].isBlank() || v[5].isBlank() || v[6].isBlank()) {
-                        alert = "نام صاحب ملک، شماره تماس، ولایت و شهر ضروری است."
+                    val validationError = validatePropertyForm(v)
+                    if (v[0].isBlank() || v[1].isBlank() || v[3].isBlank() || v[4].isBlank() || v[5].isBlank() || v[6].isBlank()) {
+                        alert = "نام مالک، شماره تماس، نوع ملک، نوع معامله، ولایت و شهر ضروری است."
+                    } else if (validationError != null) {
+                        alert = validationError
                     } else scope.launch {
                         try {
                             val existingOwner = dao.findPersonByPhone(v[1].trim())
@@ -186,8 +189,12 @@ private fun RahnamaWorkingApp() {
                 onDismiss = { form = "" },
                 onSave = { v ->
                     if (form == "request") {
-                        if (v[0].isBlank() || v[1].isBlank() || v[9].isBlank()) alert = "نام، شماره تماس و ولایت ضروری است."
-                        else scope.launch {
+                        val validationError = validateRequestForm(v)
+                        if (v[0].isBlank() || v[1].isBlank() || v[2].isBlank() || v[3].isBlank() || v[9].isBlank()) {
+                            alert = "نام، شماره تماس، نوع تقاضا، نوع ملک و ولایت ضروری است."
+                        } else if (validationError != null) {
+                            alert = validationError
+                        } else scope.launch {
                             try {
                                 val existingClient = dao.findPersonByPhone(v[1].trim())
                                 val clientId = existingClient?.id ?: dao.insertPerson(PersonEntity(
@@ -461,6 +468,69 @@ private fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -
         confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } })
 }
+private fun validatePropertyForm(v: List<String>): String? {
+    val listingType = v[4]
+    if (listingType == "کرایی" && v[12].isBlank()) return "مقدار کرایه ماهانه ضروری است."
+    if (listingType != "کرایی" && v[11].isBlank()) return "قیمت فروش یا مبلغ گروی ضروری است."
+
+    fun number(index: Int, label: String): Double? {
+        val raw = v[index].trim()
+        if (raw.isBlank()) return null
+        val value = raw.toDoubleOrNull()
+        if (value == null || !value.isFinite() || value < 0) {
+            throw IllegalArgumentException("$label باید عدد صفر یا بزرگ‌تر باشد.")
+        }
+        return value
+    }
+
+    return try {
+        number(11, "قیمت")
+        number(12, "کرایه ماهانه")
+        val bedrooms = v[14].trim()
+        if (bedrooms.isNotBlank() && (bedrooms.toIntOrNull() == null || bedrooms.toInt() < 0)) {
+            return "تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
+        }
+        val neighborSides = v[22].trim()
+        if (neighborSides.isNotBlank() && (neighborSides.toIntOrNull() == null || neighborSides.toInt() !in 0..3)) {
+            return "تعداد طرف‌های دیوار همسایه باید عدد صحیح بین ۰ تا ۳ باشد."
+        }
+        val area = number(23, "مساحت")
+        if (area != null && area <= 0) return "مساحت باید بیشتر از صفر باشد."
+        null
+    } catch (e: IllegalArgumentException) {
+        e.message ?: "مقادیر عددی ملک را بررسی کنید."
+    }
+}
+
+private fun validateRequestForm(v: List<String>): String? {
+    fun optionalNonNegative(index: Int, label: String): Double? {
+        val raw = v[index].trim()
+        if (raw.isBlank()) return null
+        val value = raw.toDoubleOrNull()
+        if (value == null || !value.isFinite() || value < 0) {
+            throw IllegalArgumentException("$label باید عدد صفر یا بزرگ‌تر باشد.")
+        }
+        return value
+    }
+
+    return try {
+        val minBudget = optionalNonNegative(4, "حداقل بودجه")
+        val maxBudget = optionalNonNegative(5, "حداکثر بودجه")
+        optionalNonNegative(6, "حداکثر کرایه ماهانه")
+        optionalNonNegative(7, "مبلغ گروی")
+        val bedrooms = v[12].trim()
+        if (bedrooms.isNotBlank() && (bedrooms.toIntOrNull() == null || bedrooms.toInt() < 0)) {
+            return "حداقل تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
+        }
+        if (minBudget != null && maxBudget != null && minBudget > maxBudget) {
+            return "حداقل بودجه نمی‌تواند از حداکثر بودجه بیشتر باشد."
+        }
+        null
+    } catch (e: IllegalArgumentException) {
+        e.message ?: "مقادیر عددی تقاضا را بررسی کنید."
+    }
+}
+
 private fun homeMapProperty(value: String) = when {
     value.contains("اپارتمان") || value.contains("آپارتمان") -> "apartment"
     value.contains("تعمیر") || value.contains("ساختمان") -> "building"
