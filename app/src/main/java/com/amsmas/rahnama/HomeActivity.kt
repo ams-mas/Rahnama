@@ -62,7 +62,25 @@ private fun RahnamaWorkingApp() {
         when (tab) {
             0 -> HomeDashboard(Modifier.padding(padding), properties.size, requests.size, people.size, properties.count { it.status == "sold" }, { tab = 1 }, { tab = 2 }, { tab = 4 })
             1 -> HomeRecords(Modifier.padding(padding), "مدیریت املاک", properties.map {
-                listOf(it.propertyCode, homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType), it.province + "، " + it.city, "قیمت: " + (it.priceAmount?.toLong()?.toString() ?: "ثبت نشده") + " AFN", it.monthlyRent?.let { rent -> "کرایه ماهانه: " + rent.toLong() + " AFN" } ?: "")
+                listOf(
+                    it.propertyCode,
+                    homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
+                    it.province + "، " + it.city + (it.district?.let { district -> "، " + district } ?: ""),
+                    it.address?.let { address -> "آدرس: " + address } ?: "",
+                    it.mapLocationNumber?.let { number -> "شماره نقشه: " + number } ?: "",
+                    it.directionPosition?.let { direction -> "موقعیت: " + direction } ?: "",
+                    "قیمت: " + (it.priceAmount?.toLong()?.toString() ?: "ثبت نشده") + " AFN",
+                    it.monthlyRent?.let { rent -> "کرایه ماهانه: " + rent.toLong() + " AFN" } ?: "",
+                    it.bedrooms?.let { rooms -> "تعداد اتاق: " + rooms } ?: "",
+                    it.kitchenAvailable?.let { value -> "آشپزخانه: " + homeYesNoText(value) } ?: "",
+                    it.electricityAvailable?.let { value -> "برق: " + homeYesNoText(value) } ?: "",
+                    it.borewellAvailable?.let { value -> "برمه: " + homeYesNoText(value) } ?: "",
+                    it.guestHouseAvailable?.let { value -> "مهمان‌خانه: " + homeYesNoText(value) } ?: "",
+                    it.guestHouseSeparateEntrance?.let { value -> "ورودی مهمان‌خانه: " + if (value) "جداگانه" else "از داخل تعمیر" } ?: "",
+                    it.landBoundaryType?.let { type -> "وضعیت زمین: " + type } ?: "",
+                    it.hasOwnWall?.let { value -> "دیوار از خود: " + homeYesNoText(value) } ?: "",
+                    it.neighborWallSides?.let { sides -> "طرف دیوار همسایه: " + sides } ?: ""
+                )
             }, "＋ ثبت ملک") { form = "property" }
             2 -> HomeRecords(Modifier.padding(padding), "تقاضاهای مشتریان", requests.map {
                 listOf(homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType), it.province + (it.city?.let { city -> "، " + city } ?: ""), "بودجه: " + (it.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (it.budgetMax?.toLong()?.toString() ?: "—"), it.maxMonthlyRent?.let { rent -> "حداکثر کرایه ماهانه: " + rent.toLong() } ?: "")
@@ -225,12 +243,28 @@ private fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -
         confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } })
 }
-private fun homeMapProperty(value: String) = when { value.contains("آپارتمان") -> "apartment"; value.contains("زمین") -> "land"; value.contains("دکان") -> "shop"; value.contains("مارکیت") -> "market"; value.contains("باغ") -> "garden"; value.contains("خانه") -> "house"; else -> "other" }
+private fun homeMapProperty(value: String) = when {
+    value.contains("اپارتمان") || value.contains("آپارتمان") -> "apartment"
+    value.contains("تعمیر") || value.contains("ساختمان") -> "building"
+    value.contains("زمین") -> "land"
+    value.contains("دکان") -> "shop"
+    value.contains("مارکیت") -> "market"
+    value.contains("باغ") -> "garden"
+    value.contains("خانه") -> "house"
+    else -> "other"
+}
+private fun homeNullableYesNo(value: String): Boolean? = when {
+    value.contains("مهم نیست") || value.isBlank() -> null
+    value.contains("ندارد") || value.contains("نیست") || value.contains("خیر") || value == "نه" -> false
+    value.contains("دارد") || value.contains("بلی") || value.contains("بله") || value.contains("ضروری") -> true
+    else -> null
+}
+private fun homeYesNoText(value: Boolean) = if (value) "دارد" else "ندارد"
 private fun homeMapListing(value: String) = when { value.contains("کرایه") || value.contains("کرایی") -> "rent"; value.contains("گروی") -> "growy"; else -> "sale" }
 private fun homeMapGrowy(value: String) = when { value.contains("سنت") -> "sunni"; value.contains("تشیع") || value.contains("شیعه") -> "shia"; else -> "unspecified" }
 private fun homeMapRequestGrowy(value: String) = when { value.contains("هرکدام") -> "either"; value.contains("سنت") -> "sunni"; value.contains("تشیع") || value.contains("شیعه") -> "shia"; else -> "unspecified" }
 private fun homeMapRole(value: String) = when { value.contains("مالک") -> "owner"; value.contains("خریدار") -> "buyer"; value.contains("مستأجر") || value.contains("مستاجر") -> "tenant"; value.contains("گروی") -> "growy_applicant"; else -> "other" }
-private fun homePropertyType(value: String) = when (value) { "house" -> "خانه"; "apartment" -> "آپارتمان"; "land" -> "زمین"; "shop" -> "دکان"; "market" -> "مارکیت"; "garden" -> "باغ"; else -> "سایر" }
+private fun homePropertyType(value: String) = when (value) { "house" -> "خانه"; "building" -> "تعمیر"; "apartment" -> "آپارتمان"; "land" -> "زمین"; "shop" -> "دکان"; "market" -> "مارکیت"; "garden" -> "باغ"; else -> "سایر" }
 private fun homeListingType(value: String) = when (value) { "rent" -> "کرایی"; "growy" -> "گروی"; else -> "فروشی" }
 private fun homeMapDisplayProperty(value: String) = homePropertyType(value)
 private fun homeMapDisplayListing(value: String) = homeListingType(value)
