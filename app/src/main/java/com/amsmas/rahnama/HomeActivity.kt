@@ -369,51 +369,40 @@ private fun HomeDashboard(
     val buyRequestCount = requests.count { it.listingType == "sale" }
     val growyRequestCount = requests.count { it.listingType == "growy" }
     val rentRequestCount = requests.count { it.listingType == "rent" }
+    val dateTime = remember {
+        java.text.SimpleDateFormat("yyyy/MM/dd  •  HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+    }
 
     LazyColumn(
-        modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(start = 12.dp, end = 12.dp, top = 8.dp, bottom = 12.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text("رهنمای معاملات", fontSize = 25.sp, fontWeight = FontWeight.Bold)
-                Text("وضعیت املاک موجود و تقاضاهای مشتریان", color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-        item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = { showRegisterOptions = !showRegisterOptions }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("ثبت")
-                    Spacer(Modifier.width(4.dp))
-                    Icon(if (showRegisterOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
-                }
-                if (showRegisterOptions) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterProperty() }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.HomeWork, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("ثبت ملک")
-                        }
-                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterRequest() }, modifier = Modifier.weight(1f)) {
-                            Icon(Icons.Default.Assignment, contentDescription = null)
-                            Spacer(Modifier.width(6.dp))
-                            Text("ثبت تقاضا")
-                        }
-                    }
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = androidx.compose.ui.graphics.Color(0xFF6950A1)),
+                elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 14.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp)
+                ) {
+                    Text("رهنمای معاملات", color = androidx.compose.ui.graphics.Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
+                    Text("تاریخ و وقت موبایل: $dateTime", color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp)
                 }
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Icon(Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(8.dp))
-                    Text("املاک موجود", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(7.dp))
+                    Text("املاک موجود", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                     HomeStatCard("فروشی", saleCount, Icons.Default.Home, Modifier.weight(1f), { onProperties("sale") })
                     HomeStatCard("گروی", growyCount, Icons.Default.Key, Modifier.weight(1f), { onProperties("growy") })
                     HomeStatCard("کرایی", rentCount, Icons.Default.Apartment, Modifier.weight(1f), { onProperties("rent") })
@@ -421,13 +410,13 @@ private fun HomeDashboard(
             }
         }
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
                 Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                     Icon(Icons.Default.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
-                    Spacer(Modifier.width(8.dp))
-                    Text("تقاضاهای مشتریان", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                    Spacer(Modifier.width(7.dp))
+                    Text("تقاضاهای مشتریان", fontSize = 17.sp, fontWeight = FontWeight.Bold)
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(7.dp), modifier = Modifier.fillMaxWidth()) {
                     HomeStatCard("خرید", buyRequestCount, Icons.Default.ShoppingCart, Modifier.weight(1f), { onRequests("sale") })
                     HomeStatCard("گروی", growyRequestCount, Icons.Default.Key, Modifier.weight(1f), { onRequests("growy") })
                     HomeStatCard("کرایه", rentRequestCount, Icons.Default.Search, Modifier.weight(1f), { onRequests("rent") })
@@ -435,19 +424,37 @@ private fun HomeDashboard(
             }
         }
         item {
-            Button(onClick = { onProperties("") }, modifier = Modifier.fillMaxWidth()) {
-                Icon(Icons.Default.Business, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("مدیریت املاک")
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(
+                    onClick = { showRegisterOptions = !showRegisterOptions },
+                    modifier = Modifier.fillMaxWidth().height(46.dp),
+                    shape = RoundedCornerShape(24.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = androidx.compose.ui.graphics.Color(0xFF6950A1))
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("ثبت")
+                    Spacer(Modifier.width(5.dp))
+                    Icon(if (showRegisterOptions) Icons.Default.ExpandLess else Icons.Default.ExpandMore, contentDescription = null)
+                }
+                if (showRegisterOptions) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterProperty() }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.HomeWork, contentDescription = null)
+                            Spacer(Modifier.width(5.dp))
+                            Text("ثبت ملک")
+                        }
+                        OutlinedButton(onClick = { showRegisterOptions = false; onRegisterRequest() }, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Assignment, contentDescription = null)
+                            Spacer(Modifier.width(5.dp))
+                            Text("ثبت تقاضا")
+                        }
+                    }
+                }
             }
         }
         item {
-            OutlinedButton(onClick = { onRequests("") }, modifier = Modifier.fillMaxWidth()) {
-                Text("مدیریت تقاضاها")
-            }
-        }
-        item {
-            OutlinedButton(onClick = onMatch, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = onMatch, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp)) {
                 Icon(Icons.Default.Search, contentDescription = null)
                 Spacer(Modifier.width(8.dp))
                 Text("جستجو و تطبیق هوشمند")
