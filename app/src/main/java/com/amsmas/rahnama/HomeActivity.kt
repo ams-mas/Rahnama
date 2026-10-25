@@ -133,8 +133,8 @@ private fun RahnamaWorkingApp() {
             onSave = { v ->
                 when (form) {
                     "property" -> {
-                        if (v[0].isBlank() || v[1].isBlank() || v[4].isBlank() || v[5].isBlank()) {
-                            alert = "نام مالک، شماره تماس، ولایت و شهر ضروری است."
+                        if (v[0].isBlank() || v[1].isBlank() || v[5].isBlank() || v[6].isBlank()) {
+                            alert = "نام مالک، شماره تماس اول، ولایت و شهر ضروری است."
                         } else scope.launch {
                             try {
                                 val existingOwner = dao.findPersonByPhone(v[1].trim())
