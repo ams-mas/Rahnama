@@ -545,15 +545,42 @@ private fun PersonDetailDialog(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {
-                    Button(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Call, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("تماس")
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    OutlinedButton(
+                        onClick = { onCall(person) },
+                        modifier = Modifier.weight(1f).heightIn(min = 68.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                    ) {
+                        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Call, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text("تماس", fontSize = 12.sp, maxLines = 1)
+                        }
                     }
-                    OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Sms, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("پیامک")
+                    OutlinedButton(
+                        onClick = { onSms(person) },
+                        modifier = Modifier.weight(1f).heightIn(min = 68.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                    ) {
+                        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Sms, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text("پیامک", fontSize = 12.sp, maxLines = 1)
+                        }
                     }
-                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Chat, contentDescription = null); Spacer(Modifier.width(4.dp)); Text("واتساپ")
+                    OutlinedButton(
+                        onClick = { onWhatsApp(person) },
+                        modifier = Modifier.weight(1f).heightIn(min = 68.dp),
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 8.dp)
+                    ) {
+                        Column(horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(Icons.Default.Chat, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Text("واتساپ", fontSize = 12.sp, maxLines = 1)
+                        }
                     }
                 }
                 OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
