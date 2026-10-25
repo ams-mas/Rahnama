@@ -357,37 +357,83 @@ private fun HomeRecords(modifier: Modifier, title: String, rows: List<List<Strin
 private fun HomePeople(
     modifier: Modifier,
     people: List<PersonEntity>,
+    properties: List<PropertyEntity>,
+    requests: List<ClientRequestEntity>,
     onAdd: () -> Unit,
-    onSelect: (PersonEntity) -> Unit
+    onSelect: (PersonEntity) -> Unit,
+    onCall: (PersonEntity) -> Unit
 ) {
-    LazyColumn(
-        modifier.fillMaxSize(),
-        contentPadding = PaddingValues(16.dp),
+    var query by remember { mutableStateOf("") }
+    val filteredPeople = remember(people, query) {
+        val term = query.trim()
+        if (term.isBlank()) people else people.filter {
+            it.fullName.contains(term, ignoreCase = true) ||
+                it.phoneNumber.contains(term, ignoreCase = true) ||
+                (it.alternatePhone?.contains(term, ignoreCase = true) == true)
+        }
+    }
+    Column(
+        modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        item { Text("اشخاص و مشتریان", fontSize = 22.sp, fontWeight = FontWeight.Bold) }
-        item { Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text("＋ ثبت شخص") } }
-        if (people.isEmpty()) {
-            item { Text("هنوز شخصی ثبت نشده است.") }
+        Text("اشخاص و مشتریان", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        OutlinedTextField(
+            value = query,
+            onValueChange = { query = it },
+            modifier = Modifier.fillMaxWidth(),
+            singleLine = true,
+            leadingIcon = { Icon(Icons.Default.Search, contentDescription = "جستجو") },
+            label = { Text("جستجو بر اساس نام یا شماره تلفن") },
+            trailingIcon = {
+                if (query.isNotBlank()) IconButton(onClick = { query = "" }) {
+                    Icon(Icons.Default.Close, contentDescription = "پاک‌کردن جستجو")
+                }
+            }
+        )
+        Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) {
+            Icon(Icons.Default.PersonAdd, contentDescription = null)
+            Spacer(Modifier.width(8.dp))
+            Text("ثبت شخص جدید")
+        }
+        Text("تعداد اشخاص: ${people.size}", style = MaterialTheme.typography.bodySmall)
+        if (filteredPeople.isEmpty()) {
+            Text(if (query.isBlank()) "هنوز شخصی ثبت نشده است." else "شخصی با این نام یا شماره پیدا نشد.")
         } else {
-            items(people, key = { it.id }) { person ->
-                Card(
-                    modifier = Modifier.fillMaxWidth().clickable { onSelect(person) }
-                ) {
-                    Column(
-                        Modifier.fillMaxWidth().padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(5.dp)
-                    ) {
-                        Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 17.sp)
-                        Text("شماره تماس: " + person.phoneNumber)
-                        person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
-                            Text("شماره دوم: " + it)
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(filteredPeople, key = { it.id }) { person ->
+                    val propertyCount = properties.count { it.ownerId == person.id }
+                    val requestCount = requests.count { it.clientId == person.id }
+                    Card(Modifier.fillMaxWidth()) {
+                        Column(
+                            Modifier.fillMaxWidth().padding(14.dp),
+                            verticalArrangement = Arrangement.spacedBy(7.dp)
+                        ) {
+                            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(person.fullName, fontWeight = FontWeight.Bold, fontSize = 17.sp)
+                                    Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary,
+                                        style = MaterialTheme.typography.labelMedium)
+                                }
+                                IconButton(onClick = { onCall(person) }) {
+                                    Icon(Icons.Default.Call, contentDescription = "تماس با ${person.fullName}")
+                                }
+                            }
+                            Text("شماره اصلی: " + person.phoneNumber)
+                            person.alternatePhone?.takeIf { it.isNotBlank() }?.let {
+                                Text("شماره دوم: " + it, style = MaterialTheme.typography.bodySmall)
+                            }
+                            val location = listOfNotNull(person.province, person.city)
+                                .filter { it.isNotBlank() }.joinToString("، ")
+                            if (location.isNotBlank()) Text(location, style = MaterialTheme.typography.bodySmall)
+                            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                AssistChip(onClick = { onSelect(person) }, label = { Text("املاک: $propertyCount") })
+                                AssistChip(onClick = { onSelect(person) }, label = { Text("تقاضاهای فعال: $requestCount") })
+                            }
+                            TextButton(onClick = { onSelect(person) }) { Text("مشاهدهٔ پروفایل و سوابق") }
                         }
-                        val location = listOfNotNull(person.province, person.city)
-                            .filter { it.isNotBlank() }.joinToString("، ")
-                        if (location.isNotBlank()) Text(location)
-                        Text("نقش: " + homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary)
-                        Text("برای مشاهدهٔ پروفایل و سوابق لمس کنید.", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -400,30 +446,58 @@ private fun PersonDetailDialog(
     person: PersonEntity,
     properties: List<PropertyEntity>,
     requests: List<ClientRequestEntity>,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onCall: (PersonEntity) -> Unit,
+    onSms: (PersonEntity) -> Unit,
+    onWhatsApp: (PersonEntity) -> Unit,
+    onEdit: (PersonEntity) -> Unit
 ) {
+    var selectedTab by remember(person.id) { mutableIntStateOf(0) }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("پروفایل شخص", fontWeight = FontWeight.Bold) },
         text = {
             Column(
-                Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth().heightIn(max = 560.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(person.fullName, fontSize = 19.sp, fontWeight = FontWeight.Bold)
-                Text("شماره تماس: " + person.phoneNumber)
+                Text(homeRoleDisplay(person.roles), color = MaterialTheme.colorScheme.primary)
+                Text("شماره اصلی: " + person.phoneNumber)
                 person.alternatePhone?.takeIf { it.isNotBlank() }?.let { Text("شماره دوم: " + it) }
                 person.province?.takeIf { it.isNotBlank() }?.let { Text("ولایت: " + it) }
-                person.city?.takeIf { it.isNotBlank() }?.let { Text("شهر: " + it) }
-                person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس: " + it) }
-                Text("نقش: " + homeRoleDisplay(person.roles))
+                person.city?.takeIf { it.isNotBlank() }?.let { Text("شهر/ناحیه: " + it) }
+                person.address?.takeIf { it.isNotBlank() }?.let { Text("آدرس دقیق: " + it) }
                 person.notes?.takeIf { it.isNotBlank() }?.let { Text("یادداشت: " + it) }
 
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    OutlinedButton(onClick = { onCall(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Call, contentDescription = null)
+                        Spacer(Modifier.width(4.dp)); Text("تماس")
+                    }
+                    OutlinedButton(onClick = { onSms(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Sms, contentDescription = null)
+                        Spacer(Modifier.width(4.dp)); Text("پیامک")
+                    }
+                    OutlinedButton(onClick = { onWhatsApp(person) }, modifier = Modifier.weight(1f)) {
+                        Icon(Icons.Default.Chat, contentDescription = null)
+                        Spacer(Modifier.width(4.dp)); Text("واتساپ")
+                    }
+                }
+                OutlinedButton(onClick = { onEdit(person) }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Edit, contentDescription = null)
+                    Spacer(Modifier.width(6.dp)); Text("ویرایش اطلاعات شخص")
+                }
+
                 HorizontalDivider()
-                Text("املاک مرتبط (" + properties.size + ")", fontWeight = FontWeight.Bold)
-                if (properties.isEmpty()) {
-                    Text("ملکی برای این شخص ثبت نشده است.")
-                } else {
+                TabRow(selectedTabIndex = selectedTab) {
+                    Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 },
+                        text = { Text("املاک (${properties.size})") })
+                    Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 },
+                        text = { Text("تقاضاها (${requests.size})") })
+                }
+                if (selectedTab == 0) {
+                    if (properties.isEmpty()) Text("ملکی برای این شخص ثبت نشده است.")
                     properties.forEach { property ->
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -436,23 +510,20 @@ private fun PersonDetailDialog(
                             }
                         }
                     }
-                }
-
-                HorizontalDivider()
-                Text("تقاضاهای فعال مرتبط (" + requests.size + ")", fontWeight = FontWeight.Bold)
-                if (requests.isEmpty()) {
-                    Text("تقاضای فعال برای این شخص ثبت نشده است.")
                 } else {
+                    if (requests.isEmpty()) Text("تقاضایی برای این شخص ثبت نشده است.")
                     requests.forEach { request ->
                         Card(Modifier.fillMaxWidth()) {
                             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType), fontWeight = FontWeight.SemiBold)
+                                Text(homePropertyType(request.propertyType) + " • " + homeListingType(request.listingType),
+                                    fontWeight = FontWeight.SemiBold)
                                 Text(request.province + (request.city?.let { "، " + it } ?: ""))
                                 if (request.budgetMin != null || request.budgetMax != null) {
-                                    Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (request.budgetMax?.toLong()?.toString() ?: "—") + " AFN")
+                                    Text("بودجه: " + (request.budgetMin?.toLong()?.toString() ?: "—") + " تا " +
+                                        (request.budgetMax?.toLong()?.toString() ?: "—") + " AFN")
                                 }
                                 request.maxMonthlyRent?.let { Text("حداکثر کرایه ماهانه: " + it.toLong() + " AFN") }
-                                Text("وضعیت تقاضا: " + request.requestStatus)
+                                Text("وضعیت تقاضا: " + if (request.requestStatus == "active") "فعال" else request.requestStatus)
                             }
                         }
                     }
@@ -461,6 +532,108 @@ private fun PersonDetailDialog(
         },
         confirmButton = { TextButton(onClick = onDismiss) { Text("بستن") } }
     )
+}
+
+@Composable
+private fun PersonEntryDialog(
+    initialPerson: PersonEntity?,
+    onDismiss: () -> Unit,
+    onSave: (PersonEntity) -> Unit
+) {
+    val roles = listOf("مالک", "خریدار", "مستأجر", "متقاضی گروی", "سایر")
+    val values = remember(initialPerson?.id) {
+        mutableStateListOf(
+            initialPerson?.fullName.orEmpty(),
+            initialPerson?.phoneNumber.orEmpty(),
+            initialPerson?.alternatePhone.orEmpty(),
+            initialPerson?.province.orEmpty(),
+            initialPerson?.city.orEmpty(),
+            initialPerson?.address.orEmpty(),
+            initialPerson?.notes.orEmpty()
+        )
+    }
+    var role by remember(initialPerson?.id) { mutableStateOf(homeRoleDisplay(initialPerson?.roles ?: "other")) }
+    var error by remember(initialPerson?.id) { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (initialPerson == null) "ثبت شخص جدید" else "ویرایش شخص", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(
+                Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                val labels = listOf("نام و نام خانوادگی *", "شماره تلفن اصلی *", "شماره تلفن دوم", "ولایت", "شهر/ناحیه", "آدرس دقیق", "توضیحات")
+                labels.forEachIndexed { index, label ->
+                    OutlinedTextField(
+                        value = values[index],
+                        onValueChange = { values[index] = it; error = null },
+                        label = { Text(label) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = index < 6
+                    )
+                }
+                HomeDropdownField("نقش شخص", role, roles) { role = it }
+                error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (values[0].isBlank() || values[1].isBlank()) {
+                    error = "نام و شماره تلفن اصلی الزامی است."
+                } else {
+                    val mappedRole = when (role) {
+                        "مالک" -> "owner"
+                        "خریدار" -> "buyer"
+                        "مستأجر" -> "tenant"
+                        "متقاضی گروی" -> "growy_applicant"
+                        else -> "other"
+                    }
+                    onSave(PersonEntity(
+                        id = initialPerson?.id ?: 0,
+                        fullName = values[0].trim(),
+                        phoneNumber = values[1].trim(),
+                        alternatePhone = values[2].trim().ifBlank { null },
+                        province = values[3].trim().ifBlank { null },
+                        city = values[4].trim().ifBlank { null },
+                        address = values[5].trim().ifBlank { null },
+                        notes = values[6].trim().ifBlank { null },
+                        roles = mappedRole,
+                        createdAt = initialPerson?.createdAt ?: System.currentTimeMillis()
+                    ))
+                }
+            }) { Text(if (initialPerson == null) "ثبت شخص" else "ذخیره تغییرات") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } }
+    )
+}
+
+private fun dialPersonNumber(context: android.content.Context, phone: String, onError: (String) -> Unit) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", phone.trim(), null)))
+    } catch (_: Exception) {
+        onError("بازکردن شماره‌گیر ممکن نشد.")
+    }
+}
+
+private fun openSms(context: android.content.Context, phone: String, onError: (String) -> Unit) {
+    try {
+        context.startActivity(Intent(Intent.ACTION_SENDTO, Uri.fromParts("smsto", phone.trim(), null)))
+    } catch (_: Exception) {
+        onError("بازکردن برنامهٔ پیامک ممکن نشد.")
+    }
+}
+
+private fun openWhatsApp(context: android.content.Context, phone: String, onError: (String) -> Unit) {
+    val digits = phone.filter { it.isDigit() }
+    if (digits.isBlank()) {
+        onError("شماره تلفن معتبر نیست.")
+        return
+    }
+    try {
+        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/$digits")))
+    } catch (_: Exception) {
+        onError("بازکردن واتساپ ممکن نشد. شماره را با کد کشور ذخیره کنید.")
+    }
 }
 
 private fun homeRoleDisplay(role: String): String = when (role) {
