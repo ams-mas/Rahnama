@@ -20,10 +20,10 @@ jobs:
           java-version: '17'
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
-      - name: Make Gradle wrapper if not present
+      - name: Validate wrapper
         run: |
-          if [ ! -f gradlew ]; then
-            echo "Gradle wrapper is not included yet. Add wrapper files from Android Studio before using this workflow."
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Gradle wrapper JAR missing or empty."
             exit 1
           fi
       - name: Build debug APK
