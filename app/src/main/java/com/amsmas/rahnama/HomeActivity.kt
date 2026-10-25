@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
@@ -369,8 +370,20 @@ private fun HomeDashboard(
     val buyRequestCount = requests.count { it.listingType == "sale" }
     val growyRequestCount = requests.count { it.listingType == "growy" }
     val rentRequestCount = requests.count { it.listingType == "rent" }
-    val dateTime = remember {
-        java.text.SimpleDateFormat("yyyy/MM/dd  •  HH:mm", java.util.Locale.getDefault()).format(java.util.Date())
+    var currentDateTime by remember {
+        mutableStateOf(java.util.Date())
+    }
+    LaunchedEffect(Unit) {
+        while (true) {
+            currentDateTime = java.util.Date()
+            kotlinx.coroutines.delay(60_000)
+        }
+    }
+    val dateLabel = remember(currentDateTime) {
+        java.text.SimpleDateFormat("EEE, MMM d, yyyy", java.util.Locale.ENGLISH).format(currentDateTime)
+    }
+    val timeLabel = remember(currentDateTime) {
+        java.text.SimpleDateFormat("h:mm a", java.util.Locale.ENGLISH).format(currentDateTime)
     }
 
     LazyColumn(
@@ -391,7 +404,29 @@ private fun HomeDashboard(
                     verticalArrangement = Arrangement.spacedBy(5.dp)
                 ) {
                     Text("رهنمای معاملات", color = androidx.compose.ui.graphics.Color.White, fontSize = 20.sp, fontWeight = FontWeight.Bold)
-                    Text("تاریخ و وقت موبایل: $dateTime", color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp)
+                    Spacer(Modifier.height(2.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 8.dp)
+                            .background(
+                                androidx.compose.ui.graphics.Color.White.copy(alpha = 0.16f),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(horizontal = 12.dp, vertical = 9.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                    ) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(dateLabel, color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium)
+                        Spacer(Modifier.width(12.dp))
+                        Box(Modifier.width(1.dp).height(16.dp).background(androidx.compose.ui.graphics.Color.White.copy(alpha = 0.45f)))
+                        Spacer(Modifier.width(12.dp))
+                        Icon(Icons.Default.AccessTime, contentDescription = null, tint = androidx.compose.ui.graphics.Color.White, modifier = Modifier.size(15.dp))
+                        Spacer(Modifier.width(6.dp))
+                        Text(timeLabel, color = androidx.compose.ui.graphics.Color.White, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
+                    }
                 }
             }
         }
