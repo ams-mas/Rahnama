@@ -4,6 +4,9 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
@@ -132,61 +135,57 @@ private fun RahnamaWorkingApp() {
     }
 
     if (form.isNotBlank()) {
-        val fields = when (form) { "property" -> propertyFields; "request" -> requestFields; else -> personFields }
-        HomeEntryDialog(if (form == "property") "ثبت ملک" else if (form == "request") "ثبت تقاضای مشتری" else "ثبت شخص", fields,
-            onDismiss = { form = "" },
-            onSave = { v ->
-                when (form) {
-                    "property" -> {
-                        if (v[0].isBlank() || v[1].isBlank() || v[5].isBlank() || v[6].isBlank()) {
-                            alert = "نام مالک، شماره تماس اول، ولایت و شهر ضروری است."
-                        } else scope.launch {
-                            try {
-                                val existingOwner = dao.findPersonByPhone(v[1].trim())
-                                val ownerId = existingOwner?.id ?: dao.insertPerson(PersonEntity(
-                                    fullName = v[0].trim(), phoneNumber = v[1].trim(),
-                                    alternatePhone = v[2].trim().ifBlank { null },
-                                    province = v[5].trim(), city = v[6].trim(),
-                                    address = v[8].trim().ifBlank { null }, roles = "owner"
-                                ))
-                                if (existingOwner != null && v[2].isNotBlank()) {
-                                    dao.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
-                                }
-                                val propertyCode = PropertyCodeGenerator.candidate(dao.countProperties() + 1, homeJalaliYear())
-                                dao.insertProperty(PropertyEntity(
-                                    propertyCode = propertyCode, ownerId = ownerId,
-                                    propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
-                                    province = v[5].trim(), city = v[6].trim(),
-                                    district = v[7].trim().ifBlank { null },
-                                    address = v[8].trim().ifBlank { null },
-                                    mapLocationNumber = v[9].trim().ifBlank { null },
-                                    directionPosition = v[10].trim().ifBlank { null },
-                                    priceAmount = v[11].trim().toDoubleOrNull(),
-                                    monthlyRent = v[12].trim().toDoubleOrNull(),
-                                    growyCondition = homeMapGrowy(v[13]),
-                                    bedrooms = v[14].trim().toIntOrNull(),
-                                    kitchenAvailable = homeNullableYesNo(v[15]),
-                                    electricityAvailable = homeNullableYesNo(v[16]),
-                                    borewellAvailable = homeNullableYesNo(v[17]),
-                                    guestHouseAvailable = homeNullableYesNo(v[18]),
-                                    guestHouseSeparateEntrance = when {
-                                        v[19].contains("جدا") -> true
-                                        v[19].contains("داخل") -> false
-                                        else -> null
-                                    },
-                                    landBoundaryType = v[20].trim().ifBlank { null },
-                                    hasOwnWall = homeNullableYesNo(v[21]),
-                                    neighborWallSides = v[22].trim().toIntOrNull(),
-                                    areaValue = v[23].trim().toDoubleOrNull(),
-                                    description = v[24].trim().ifBlank { null },
-                                    constructionType = v[25].trim().ifBlank { null }
-                                ))
-                                form = ""
-                                alert = "ملک ذخیره شد. کد ملک: " + propertyCode
-                            } catch (e: Exception) { alert = "ذخیره ملک ناموفق بود؛ اطلاعات را بررسی کنید." }
-                        }
+        if (form == "property") {
+            PropertyEntryDialog(
+                onDismiss = { form = "" },
+                onSave = { v ->
+                    if (v[0].isBlank() || v[1].isBlank() || v[5].isBlank() || v[6].isBlank()) {
+                        alert = "نام صاحب ملک، شماره تماس، ولایت و شهر ضروری است."
+                    } else scope.launch {
+                        try {
+                            val existingOwner = dao.findPersonByPhone(v[1].trim())
+                            val ownerId = existingOwner?.id ?: dao.insertPerson(PersonEntity(
+                                fullName = v[0].trim(), phoneNumber = v[1].trim(),
+                                alternatePhone = v[2].trim().ifBlank { null },
+                                province = v[5].trim(), city = v[6].trim(),
+                                address = v[8].trim().ifBlank { null }, roles = "owner"
+                            ))
+                            if (existingOwner != null && v[2].isNotBlank()) {
+                                dao.updatePersonContactDetails(existingOwner.id, v[2].trim(), v[8].trim().ifBlank { null })
+                            }
+                            val propertyCode = PropertyCodeGenerator.candidate(dao.countProperties() + 1, homeJalaliYear())
+                            dao.insertProperty(PropertyEntity(
+                                propertyCode = propertyCode, ownerId = ownerId,
+                                propertyType = homeMapProperty(v[3]), listingType = homeMapListing(v[4]),
+                                province = v[5].trim(), city = v[6].trim(),
+                                district = v[7].trim().ifBlank { null }, address = v[8].trim().ifBlank { null },
+                                mapLocationNumber = v[9].trim().ifBlank { null }, directionPosition = v[10].trim().ifBlank { null },
+                                priceAmount = v[11].trim().toDoubleOrNull(), monthlyRent = v[12].trim().toDoubleOrNull(),
+                                growyCondition = homeMapGrowy(v[13]), bedrooms = v[14].trim().toIntOrNull(),
+                                kitchenAvailable = homeNullableYesNo(v[15]), electricityAvailable = homeNullableYesNo(v[16]),
+                                borewellAvailable = homeNullableYesNo(v[17]), guestHouseAvailable = homeNullableYesNo(v[18]),
+                                guestHouseSeparateEntrance = when {
+                                    v[19].contains("جدا") -> true
+                                    v[19].contains("داخل") -> false
+                                    else -> null
+                                },
+                                landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
+                                neighborWallSides = v[22].trim().toIntOrNull(), areaValue = v[23].trim().toDoubleOrNull(),
+                                description = v[24].trim().ifBlank { null }, constructionType = null,
+                                propertyTypeDetails = v[25].trim().ifBlank { null }, kotahAvailable = homeNullableYesNo(v[26])
+                            ))
+                            form = ""
+                            alert = "ملک ذخیره شد. کد ملک: " + propertyCode
+                        } catch (e: Exception) { alert = "ذخیره ملک ناموفق بود؛ اطلاعات را بررسی کنید." }
                     }
-                    "request" -> {
+                }
+            )
+        } else {
+            val fields = if (form == "request") requestFields else personFields
+            HomeEntryDialog(if (form == "request") "ثبت تقاضای مشتری" else "ثبت شخص", fields,
+                onDismiss = { form = "" },
+                onSave = { v ->
+                    if (form == "request") {
                         if (v[0].isBlank() || v[1].isBlank() || v[9].isBlank()) alert = "نام، شماره تماس و ولایت ضروری است."
                         else scope.launch {
                             try {
@@ -196,19 +195,15 @@ private fun RahnamaWorkingApp() {
                                     alternatePhone = v[20].trim().ifBlank { null },
                                     province = v[9].trim(), city = v[10].trim().ifBlank { null }, roles = "applicant"
                                 ))
-                                if (existingClient != null && v[20].isNotBlank()) {
-                                    dao.updatePersonContactDetails(existingClient.id, v[20].trim(), null)
-                                }
+                                if (existingClient != null && v[20].isNotBlank()) dao.updatePersonContactDetails(existingClient.id, v[20].trim(), null)
                                 dao.insertRequest(ClientRequestEntity(
-                                    clientId = clientId, listingType = homeMapListing(v[2]),
-                                    propertyType = homeMapProperty(v[3]),
+                                    clientId = clientId, listingType = homeMapListing(v[2]), propertyType = homeMapProperty(v[3]),
                                     budgetMin = v[4].trim().toDoubleOrNull(), budgetMax = v[5].trim().toDoubleOrNull(),
                                     maxMonthlyRent = v[6].trim().toDoubleOrNull(), desiredGrowyAmount = v[7].trim().toDoubleOrNull(),
                                     growyCondition = homeMapRequestGrowy(v[8]), province = v[9].trim(),
                                     city = v[10].trim().ifBlank { null }, district = v[11].trim().ifBlank { null },
                                     bedroomsMin = v[12].trim().toIntOrNull(), notes = v[13].trim(),
-                                    kitchenRequired = homeNullableYesNo(v[14]),
-                                    electricityRequired = homeNullableYesNo(v[15]),
+                                    kitchenRequired = homeNullableYesNo(v[14]), electricityRequired = homeNullableYesNo(v[15]),
                                     borewellRequired = homeNullableYesNo(v[16]),
                                     separateGuestEntranceRequired = when {
                                         v[17].contains("مهم نیست") || v[17].isBlank() -> null
@@ -216,14 +211,12 @@ private fun RahnamaWorkingApp() {
                                         v[17].contains("ضروری") -> true
                                         else -> null
                                     },
-                                    mapLocationNumber = v[18].trim().ifBlank { null },
-                                    requestedAddressType = v[19].trim().ifBlank { null }
+                                    mapLocationNumber = v[18].trim().ifBlank { null }, requestedAddressType = v[19].trim().ifBlank { null }
                                 ))
                                 form = ""; alert = "تقاضا ذخیره شد."
                             } catch (e: Exception) { alert = "ذخیره تقاضا ناموفق بود؛ اطلاعات را بررسی کنید." }
                         }
-                    }
-                    else -> {
+                    } else {
                         if (v[0].isBlank() || v[1].isBlank()) alert = "نام و شماره تماس ضروری است."
                         else scope.launch {
                             try {
@@ -237,8 +230,8 @@ private fun RahnamaWorkingApp() {
                             } catch (e: Exception) { alert = "ذخیره شخص ناموفق بود؛ شماره تماس را بررسی کنید." }
                         }
                     }
-                }
-            })
+                })
+        }
     }
     alert?.let { AlertDialog(onDismissRequest = { alert = null }, title = { Text("رهنمای معاملات") }, text = { Text(it) }, confirmButton = { TextButton(onClick = { alert = null }) { Text("تأیید") } }) }
 }
@@ -309,6 +302,114 @@ private fun HomeMatching(modifier: Modifier, properties: List<PropertyEntity>, r
         }
     }
 }
+private data class PropertyFormField(val index: Int, val label: String, val options: List<String>? = null)
+
+@Composable
+private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
+    val values = remember { mutableStateListOf<String>().also { state -> repeat(27) { state.add("") } } }
+    val propertyType = values[3]
+    val listingType = values[4]
+    val yesNo = listOf("دارد", "ندارد", "نامشخص")
+    val fields = buildList {
+        add(PropertyFormField(0, "نام صاحب ملک *"))
+        add(PropertyFormField(1, "شماره تماس اول *"))
+        add(PropertyFormField(2, "شماره تماس دوم"))
+        add(PropertyFormField(3, "نوع ملک *", listOf("تعمیر", "آپارتمان", "زمین", "دکان", "مارکیت", "باغ")))
+        add(PropertyFormField(4, "نوع معامله *", listOf("فروشی", "کرایی", "گروی")))
+        add(PropertyFormField(5, "ولایت *"))
+        add(PropertyFormField(6, "شهر *"))
+        add(PropertyFormField(7, "ناحیه / گذر"))
+        add(PropertyFormField(8, "آدرس"))
+        add(PropertyFormField(9, "شماره ملک / شماره موقعیت"))
+        add(PropertyFormField(10, "چپه یا راسته", listOf("چپه", "راسته", "نامشخص")))
+        if (listingType != "کرایی") add(PropertyFormField(11, "قیمت"))
+        if (listingType == "کرایی" || listingType == "گروی") add(PropertyFormField(12, "کرایه ماهانه"))
+        if (listingType == "گروی") add(PropertyFormField(13, "شرایط گروی", listOf("اهل سنت", "اهل تشیع", "نامشخص")))
+        when (propertyType) {
+            "زمین" -> {
+                add(PropertyFormField(20, "نوع زمین", listOf("زمین خالی", "چهار دیواری")))
+                add(PropertyFormField(21, "دیوار از خود دارد؟", yesNo))
+                add(PropertyFormField(22, "تعداد طرف دیوار همسایه", listOf("0", "1", "2", "3")))
+                add(PropertyFormField(23, "مساحت زمین"))
+                add(PropertyFormField(25, "مشخصات بیشتر زمین"))
+            }
+            "تعمیر" -> {
+                add(PropertyFormField(14, "تعداد اتاق"))
+                add(PropertyFormField(15, "آشپزخانه", yesNo))
+                add(PropertyFormField(16, "برق", yesNo))
+                add(PropertyFormField(17, "برمه آب", yesNo))
+                add(PropertyFormField(18, "مهمان خانه", yesNo))
+                add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
+                add(PropertyFormField(26, "کوته", yesNo))
+                add(PropertyFormField(25, "مشخصات بیشتر تعمیر"))
+            }
+            "آپارتمان" -> {
+                add(PropertyFormField(14, "تعداد اتاق"))
+                add(PropertyFormField(15, "آشپزخانه", yesNo))
+                add(PropertyFormField(16, "برق", yesNo))
+                add(PropertyFormField(17, "برمه آب", yesNo))
+                add(PropertyFormField(18, "مهمان خانه", yesNo))
+                add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
+                add(PropertyFormField(26, "کوته", yesNo))
+                add(PropertyFormField(23, "مساحت"))
+                add(PropertyFormField(25, "مشخصات بیشتر آپارتمان"))
+            }
+            "باغ" -> {
+                add(PropertyFormField(20, "وضعیت زمین", listOf("زمین خالی", "چهار دیواری", "باغ دارای تعمیر")))
+                add(PropertyFormField(21, "دیوار از خود دارد؟", yesNo))
+                add(PropertyFormField(22, "تعداد طرف دیوار همسایه", listOf("0", "1", "2", "3")))
+                add(PropertyFormField(23, "مساحت زمین"))
+                add(PropertyFormField(16, "برق", yesNo))
+                add(PropertyFormField(17, "برمه آب", yesNo))
+                add(PropertyFormField(25, "مشخصات بیشتر باغ"))
+            }
+            "دکان", "مارکیت" -> {
+                add(PropertyFormField(16, "برق", yesNo))
+                add(PropertyFormField(17, "برمه آب", yesNo))
+                add(PropertyFormField(23, "مساحت"))
+                add(PropertyFormField(25, "مشخصات بیشتر ملک"))
+            }
+            else -> add(PropertyFormField(25, "مشخصات بیشتر ملک"))
+        }
+        add(PropertyFormField(24, "توضیحات بیشتر"))
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("ثبت ملک", fontWeight = FontWeight.Bold) },
+        text = {
+            Column(Modifier.fillMaxWidth().heightIn(max = 520.dp).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(9.dp)) {
+                Text("مشخصات ملک", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary)
+                fields.forEach { field ->
+                    if (field.options != null) {
+                        HomeDropdownField(field.label, values[field.index], field.options) { values[field.index] = it }
+                    } else {
+                        OutlinedTextField(values[field.index], { values[field.index] = it },
+                            label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    }
+                }
+            }
+        },
+        confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره ملک") } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } }
+    )
+}
+
+@Composable
+private fun HomeDropdownField(label: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
+    var expanded by remember(label) { mutableStateOf(false) }
+    Box(Modifier.fillMaxWidth()) {
+        OutlinedTextField(value = selected, onValueChange = {}, readOnly = true, label = { Text(label) },
+            trailingIcon = { Icon(Icons.Default.ArrowDropDown, contentDescription = null) },
+            modifier = Modifier.fillMaxWidth().clickable { expanded = true }, singleLine = true)
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            options.forEach { option ->
+                DropdownMenuItem(text = { Text(option) }, onClick = { onSelected(option); expanded = false })
+            }
+        }
+    }
+}
+
 @Composable
 private fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
     val values = remember(title) { mutableStateListOf<String>().also { state -> fields.forEach { state.add("") } } }
