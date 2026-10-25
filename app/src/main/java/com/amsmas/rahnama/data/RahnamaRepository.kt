@@ -23,4 +23,6 @@ class RahnamaRepository(private val dao: RahnamaDao) {
     suspend fun propertyCodeExists(code: String): Boolean = dao.propertyCodeExists(code)
     suspend fun insertProperty(property: PropertyEntity): Long = dao.insertProperty(property)
     suspend fun insertRequest(request: ClientRequestEntity): Long = dao.insertRequest(request)
+    suspend fun updatePropertyStatus(propertyId: Long, status: String) = dao.updatePropertyStatus(propertyId, status)
+    suspend fun updateRequestStatus(requestId: Long, status: String) = dao.updateRequestStatus(requestId, status)
 }
