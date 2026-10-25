@@ -32,7 +32,8 @@ private data class RahnamaNav(val title: String, val icon: androidx.compose.ui.g
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RahnamaWorkingApp() {
-    val dao = remember { RahnamaDatabase.getInstance(LocalContext.current).dao() }
+    val context = LocalContext.current
+    val dao = remember { RahnamaDatabase.getInstance(context).dao() }
     val scope = rememberCoroutineScope()
     val people by dao.observePersons().collectAsState(initial = emptyList())
     val properties by dao.observeProperties().collectAsState(initial = emptyList())
