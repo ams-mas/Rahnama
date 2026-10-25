@@ -46,6 +46,7 @@ private fun RahnamaWorkingApp() {
     val people by viewModel.people.collectAsState(initial = emptyList())
     val properties by viewModel.properties.collectAsState(initial = emptyList())
     val requests by viewModel.activeRequests.collectAsState(initial = emptyList())
+    val allRequests by viewModel.allRequests.collectAsState(initial = emptyList())
     var tab by remember { mutableIntStateOf(0) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
@@ -184,14 +185,14 @@ private fun RahnamaWorkingApp() {
                     viewModel.savePerson(person) { result ->
                         result.fold(
                             onSuccess = { form = ""; alert = "شخص با موفقیت ثبت شد." },
-                            onFailure = { alert = "ثبت شخص ناموفق بود؛ شماره تماس را بررسی کنید." }
+                            onFailure = { alert = it.message ?: "ثبت شخص ناموفق بود؛ شماره تماس را بررسی کنید." }
                         )
                     }
                 } else {
                     viewModel.updatePerson(person) { result ->
                         result.fold(
                             onSuccess = { form = ""; editingPerson = null; alert = "اطلاعات شخص به‌روزرسانی شد." },
-                            onFailure = { alert = "ویرایش شخص ناموفق بود؛ اطلاعات را بررسی کنید." }
+                            onFailure = { alert = it.message ?: "ویرایش شخص ناموفق بود؛ اطلاعات را بررسی کنید." }
                         )
                     }
                 }
@@ -288,7 +289,7 @@ private fun RahnamaWorkingApp() {
         PersonDetailDialog(
             person = people.firstOrNull { it.id == person.id } ?: person,
             properties = properties.filter { it.ownerId == person.id },
-            requests = requests.filter { it.clientId == person.id },
+            requests = allRequests.filter { it.clientId == person.id },
             onDismiss = { selectedPerson = null },
             onCall = { p ->
                 if (p.alternatePhone.isNullOrBlank()) dialPersonNumber(context, p.phoneNumber) { alert = it }
@@ -540,7 +541,7 @@ private fun PersonEntryDialog(
     onDismiss: () -> Unit,
     onSave: (PersonEntity) -> Unit
 ) {
-    val roles = listOf("مالک", "خریدار", "مستأجر", "متقاضی گروی", "سایر")
+    val roles = listOf("مالک", "خریدار", "مستأجر", "متقاضی گروی", "متقاضی", "سایر")
     val values = remember(initialPerson?.id) {
         mutableStateListOf(
             initialPerson?.fullName.orEmpty(),
@@ -586,6 +587,7 @@ private fun PersonEntryDialog(
                         "خریدار" -> "buyer"
                         "مستأجر" -> "tenant"
                         "متقاضی گروی" -> "growy_applicant"
+                        "متقاضی" -> "applicant"
                         else -> "other"
                     }
                     onSave(PersonEntity(
