@@ -1,38 +1,72 @@
 # Rahnama Android
 
-Rahnama is an installable Android app for Afghan real-estate management. The interface is in Persian/Dari with right-to-left layout. Room stores people, properties and customer requests locally on the phone, so the basic system works offline.
+Rahnama is a native Android app for managing real-estate listings and customer requests for Afghan real-estate agencies. The interface is Persian/Dari and right-to-left. The app uses Room/SQLite to store records locally on the phone. No online payment processing is included.
 
-## Technology
-- Kotlin, Jetpack Compose and Material 3
-- Room local SQLite database
-- Gradle Kotlin DSL
-- Minimum Android API 26
+## Project structure
 
-## Implemented in the current foundation
-- RTL dashboard with live counts from local records
-- Create and list property records
+```text
+Rahnama/
+├── .github/
+│   └── workflows/
+│       └── android-build.yml       # Builds debug APK in GitHub Actions
+├── app/
+│   ├── build.gradle.kts             # Android app dependencies and SDK settings
+│   └── src/
+│       ├── main/
+│       │   ├── AndroidManifest.xml
+│       │   └── java/com/amsmas/rahnama/
+│       │       ├── HomeActivity.kt  # Main Persian RTL app UI and forms
+│       │       ├── MainActivity.kt  # Earlier starter screen
+│       │       └── data/
+│       │           ├── Entities.kt  # Room entities: people, properties, requests
+│       │           ├── RahnamaDao.kt
+│       │           ├── RahnamaDatabase.kt
+│       │           ├── MatchingEngine.kt
+│       │           └── PropertyCodeGenerator.kt
+│       └── test/
+│           └── java/com/amsmas/rahnama/data/
+│               └── MatchingEngineTest.kt
+├── gradle/wrapper/
+│   ├── gradle-wrapper.jar
+│   └── gradle-wrapper.properties
+├── build.gradle.kts                 # Root Gradle plugins
+├── gradle.properties
+├── gradlew                          # Linux/macOS Gradle wrapper
+├── gradlew.bat                      # Windows Gradle wrapper
+├── settings.gradle.kts
+└── README.md
+```
+
+## Open on Windows in Android Studio
+
+1. Clone this repository and branch `android-apk-foundation`.
+2. In Android Studio, choose **Open** and select the `Rahnama` project folder.
+3. Use JDK 17 and let Gradle sync complete.
+4. Select **Build → Build APK(s)** or run `gradlew.bat assembleDebug` in the project terminal.
+5. The debug APK is normally created at `app/build/outputs/apk/debug/app-debug.apk`.
+
+Clone command:
+
+```powershell
+git clone -b android-apk-foundation https://github.com/ams-mas/Rahnama.git
+```
+
+To update an existing clone:
+
+```powershell
+git switch android-apk-foundation
+git pull origin android-apk-foundation
+```
+
+## Included starter functionality
+
+- Persian/Dari RTL dashboard
+- Local database for people, property listings, and customer requests
 - System-generated property codes
-- Sale, rent and growy transaction types
-- Separate price/growy principal and monthly-rent fields
-- Create and list contacts and customer requests
-- First-pass matching of active requests with available properties
-- No online payments or payment gateway
+- Sale, rent, and growy listing types, with a separate monthly rent field
+- First-pass matching between active requests and available properties
+- Debug APK build workflow
 
-## Build the debug APK
-1. Install Android Studio and the Android SDK.
-2. Clone this repository and open the project in Android Studio.
-3. Check out branch `android-apk-foundation`.
-4. Wait for Gradle sync and select **Build > Build APK(s)**.
-5. The debug APK normally appears at `app/build/outputs/apk/debug/app-debug.apk`.
+## Known limitations
 
-A GitHub Actions workflow also attempts to build the debug APK and attach it as a workflow artifact. Check the [Actions page](https://github.com/ams-mas/Rahnama/actions?query=branch%3Aandroid-apk-foundation) for the latest run status.
-
-## Not yet implemented / limitations
-- SMS provider integration and delivery status
-- Cloud sync across multiple devices
-- Export/restore backup workflow
-- Edit/delete property and contact flows
-- Release signing and production deployment
-- The current first-pass growy matching rules should be validated against the actual office rules
-
-This is an early development build, not yet a production-ready property-management system. Build and test it on a real phone before entering important customer data.
+This is an early development build. Validate the build and test the screens on a real Android device before entering important data. Growy matching rules need validation against the agency's actual practices. SMS integration, cloud synchronization, backup/restore, edit/delete workflows, and release signing are not yet implemented.
