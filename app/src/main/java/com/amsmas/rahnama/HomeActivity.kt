@@ -3,6 +3,8 @@ package com.amsmas.rahnama
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -45,6 +47,30 @@ private fun RahnamaWorkingApp() {
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
     var alert by remember { mutableStateOf<String?>(null) }
+    val backupLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.CreateDocument("application/vnd.sqlite3")
+    ) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                DatabaseBackup.export(context, uri)
+                alert = "پشتیبان دیتابیس با موفقیت ذخیره شد."
+            } catch (e: Exception) {
+                alert = "ساخت پشتیبان ناموفق بود. فضای ذخیره‌سازی و دسترسی فایل را بررسی کنید."
+            }
+        }
+    }
+    val restoreLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) scope.launch {
+            try {
+                DatabaseBackup.restore(context, uri)
+                alert = "بازیابی انجام شد. اطلاعات از فایل انتخاب‌شده بارگذاری شد."
+            } catch (e: Exception) {
+                alert = "بازیابی ناموفق بود. فایل پشتیبان معتبر را انتخاب کنید؛ اطلاعات قبلی تا حد امکان حفظ می‌شود."
+            }
+        }
+    }
     val nav = listOf(
         RahnamaNav("خانه", Icons.Default.Home),
         RahnamaNav("املاک", Icons.Default.Apartment),
@@ -134,7 +160,7 @@ private fun RahnamaWorkingApp() {
                 onSelect = { selectedPerson = it }
             )
             4 -> HomeMatching(Modifier.padding(padding), properties, requests, people)
-            else -> HomeSettings(Modifier.padding(padding))
+            else -> HomeSettings(Modifier.padding(padding), onBackup = { backupLauncher.launch("rahnama-backup.db") }, onRestore = { restoreLauncher.launch(arrayOf("*/*")) })
         }
     }
 
@@ -417,18 +443,58 @@ private fun homeStatusDisplay(status: String): String = when (status) {
 }
 
 @Composable
-private fun HomeSettings(modifier: Modifier) {
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+private fun HomeSettings(
+    modifier: Modifier,
+    onBackup: () -> Unit,
+    onRestore: () -> Unit
+) {
+    var showRestoreWarning by remember { mutableStateOf(false) }
+    Column(
+        modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         Text("تنظیمات", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-        Text("این بخش برای تنظیمات آینده برنامه آماده شده است.")
+        Text("پشتیبان‌گیری روی دستگاه یا حافظه‌ای که خودتان انتخاب می‌کنید انجام می‌شود.")
         Card(Modifier.fillMaxWidth()) {
-            Row(Modifier.fillMaxWidth().padding(16.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                Icon(Icons.Default.Settings, contentDescription = null)
-                Column {
-                    Text("تنظیمات برنامه", fontWeight = FontWeight.SemiBold)
-                    Text("گزینه‌های تنظیمات بعداً در این صفحه اضافه خواهند شد.")
+            Column(
+                Modifier.fillMaxWidth().padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                Icon(Icons.Default.Backup, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Text("پشتیبان‌گیری و بازیابی", fontWeight = FontWeight.SemiBold, fontSize = 18.sp)
+                Text("یک نسخه از دیتابیس شامل اشخاص، املاک و تقاضاها ذخیره کنید. برای انتقال اطلاعات به موبایل دیگر نیز می‌توانید فایل را منتقل کنید.")
+                Button(onClick = onBackup, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.SaveAlt, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("ساخت فایل پشتیبان")
                 }
+                OutlinedButton(onClick = { showRestoreWarning = true }, modifier = Modifier.fillMaxWidth()) {
+                    Icon(Icons.Default.Restore, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("بازیابی از فایل پشتیبان")
+                }
+                Text(
+                    "هشدار: بازیابی، اطلاعات فعلی برنامه را با اطلاعات فایل پشتیبان جایگزین می‌کند.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall
+                )
             }
+        }
+        if (showRestoreWarning) {
+            AlertDialog(
+                onDismissRequest = { showRestoreWarning = false },
+                title = { Text("تأیید بازیابی") },
+                text = { Text("اطلاعات فعلی جایگزین می‌شود. پیش از ادامه، اگر اطلاعات فعلی برایتان مهم است، ابتدا از آن پشتیبان بگیرید. آیا فایل پشتیبان را انتخاب می‌کنید؟") },
+                confirmButton = {
+                    Button(onClick = {
+                        showRestoreWarning = false
+                        onRestore()
+                    }) { Text("انتخاب فایل") }
+                },
+                dismissButton = {
+                    TextButton(onClick = { showRestoreWarning = false }) { Text("لغو") }
+                }
+            )
         }
     }
 }
