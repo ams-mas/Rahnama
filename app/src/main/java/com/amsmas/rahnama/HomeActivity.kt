@@ -83,10 +83,23 @@ private fun RahnamaWorkingApp() {
                 )
             }, "＋ ثبت ملک") { form = "property" }
             2 -> HomeRecords(Modifier.padding(padding), "تقاضاهای مشتریان", requests.map {
-                listOf(homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType), it.province + (it.city?.let { city -> "، " + city } ?: ""), "بودجه: " + (it.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (it.budgetMax?.toLong()?.toString() ?: "—"), it.maxMonthlyRent?.let { rent -> "حداکثر کرایه ماهانه: " + rent.toLong() } ?: "")
+                listOf(
+                    homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
+                    it.province + (it.city?.let { city -> "، " + city } ?: ""),
+                    "بودجه: " + (it.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (it.budgetMax?.toLong()?.toString() ?: "—"),
+                    it.maxMonthlyRent?.let { rent -> "حداکثر کرایه ماهانه: " + rent.toLong() } ?: "",
+                    it.bedroomsMin?.let { rooms -> "حداقل اتاق: " + rooms } ?: "",
+                    it.kitchenRequired?.let { value -> "آشپزخانه: " + homeYesNoText(value) } ?: "",
+                    it.electricityRequired?.let { value -> "برق: " + homeYesNoText(value) } ?: "",
+                    it.borewellRequired?.let { value -> "برمه: " + homeYesNoText(value) } ?: "",
+                    it.separateGuestEntranceRequired?.let { value -> "ورودی جداگانه مهمان‌خانه: " + if (value) "ضروری" else "ضروری نیست" } ?: "",
+                    it.mapLocationNumber?.let { number -> "شماره موقعیت نقشه: " + number } ?: "",
+                    it.requestedAddressType?.let { addressType -> "آدرس مورد نظر: " + addressType } ?: "",
+                    it.notes ?: ""
+                )
             }, "＋ ثبت تقاضا") { form = "request" }
             3 -> HomeRecords(Modifier.padding(padding), "اشخاص و مشتریان", people.map {
-                listOf(it.fullName, it.phoneNumber, (it.province ?: "") + " " + (it.city ?: ""), "نقش: " + it.roles)
+                listOf(it.fullName, "شماره اول: " + it.phoneNumber, it.alternatePhone?.let { phone -> "شماره دوم: " + phone } ?: "", (it.province ?: "") + " " + (it.city ?: ""), "نقش: " + it.roles)
             }, "＋ ثبت شخص") { form = "person" }
             4 -> HomeMatching(Modifier.padding(padding), properties, requests)
             else -> HomeSettings(Modifier.padding(padding))
