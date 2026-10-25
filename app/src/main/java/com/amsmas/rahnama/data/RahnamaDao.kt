@@ -35,6 +35,9 @@ interface RahnamaDao {
     @Query("SELECT COUNT(*) FROM properties")
     suspend fun countProperties(): Int
 
+    @Query("SELECT EXISTS(SELECT 1 FROM properties WHERE propertyCode = :code)")
+    suspend fun propertyCodeExists(code: String): Boolean
+
     @Query("SELECT COUNT(*) FROM properties WHERE status = 'available'")
     fun observeAvailablePropertyCount(): Flow<Int>
 
