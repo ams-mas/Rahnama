@@ -128,7 +128,7 @@ private fun RahnamaWorkingApp() {
         } } }
     ) { padding ->
         when (tab) {
-            0 -> HomeDashboard(Modifier.padding(padding), properties.size, requests.size, people.size, properties.count { it.status == "sold" }, { tab = 1 }, { tab = 2 }, { tab = 4 })
+            0 -> HomeDashboard(Modifier.padding(padding), properties, requests, { tab = 1 }, { tab = 2 }, { tab = 4 })
             1 -> HomeRecords(Modifier.padding(padding), "مدیریت املاک", properties.map {
                 listOf(
                     it.propertyCode,
@@ -338,20 +338,108 @@ private fun RahnamaWorkingApp() {
 }
 
 @Composable
-private fun HomeDashboard(modifier: Modifier, propertyCount: Int, requestCount: Int, peopleCount: Int, soldCount: Int, onProperties: () -> Unit, onRequests: () -> Unit, onMatch: () -> Unit) {
-    LazyColumn(modifier.fillMaxSize(), contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item { Text("داشبورد", fontSize = 24.sp, fontWeight = FontWeight.Bold); Text("آمار از داده‌های ذخیره‌شده در موبایل") }
-        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { HomeCount("کل املاک", propertyCount.toString(), Modifier.weight(1f)); HomeCount("تقاضاهای فعال", requestCount.toString(), Modifier.weight(1f)) } }
-        item { Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) { HomeCount("اشخاص", peopleCount.toString(), Modifier.weight(1f)); HomeCount("فروخته‌شده", soldCount.toString(), Modifier.weight(1f)) } }
-        item { Button(onClick = onProperties, modifier = Modifier.fillMaxWidth()) { Text("مدیریت املاک") } }
-        item { OutlinedButton(onClick = onRequests, modifier = Modifier.fillMaxWidth()) { Text("مدیریت تقاضاها") } }
-        item { OutlinedButton(onClick = onMatch, modifier = Modifier.fillMaxWidth()) { Icon(Icons.Default.Search, null); Spacer(Modifier.width(8.dp)); Text("جستجو و تطبیق هوشمند") } }
-        item { Text("پرداخت آنلاین در این برنامه فعال نیست.") }
+private fun HomeDashboard(
+    modifier: Modifier,
+    properties: List<PropertyEntity>,
+    requests: List<ClientRequestEntity>,
+    onProperties: () -> Unit,
+    onRequests: () -> Unit,
+    onMatch: () -> Unit
+) {
+    val availableProperties = properties.filter { it.status == "available" }
+    val saleCount = availableProperties.count { it.listingType == "sale" }
+    val growyCount = availableProperties.count { it.listingType == "growy" }
+    val rentCount = availableProperties.count { it.listingType == "rent" }
+    val buyRequestCount = requests.count { it.listingType == "sale" }
+    val growyRequestCount = requests.count { it.listingType == "growy" }
+    val rentRequestCount = requests.count { it.listingType == "rent" }
+
+    LazyColumn(
+        modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp)
+    ) {
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text("رهنمای معاملات", fontSize = 25.sp, fontWeight = FontWeight.Bold)
+                Text("وضعیت املاک موجود و تقاضاهای مشتریان", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Icon(Icons.Default.Home, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("املاک موجود", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HomeStatCard("فروشی", saleCount, Icons.Default.Home, Modifier.weight(1f), onProperties)
+                    HomeStatCard("گروی", growyCount, Icons.Default.Key, Modifier.weight(1f), onProperties)
+                    HomeStatCard("کرایی", rentCount, Icons.Default.Apartment, Modifier.weight(1f), onProperties)
+                }
+            }
+        }
+        item {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Icon(Icons.Default.People, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                    Spacer(Modifier.width(8.dp))
+                    Text("تقاضاهای مشتریان", fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    HomeStatCard("خرید", buyRequestCount, Icons.Default.ShoppingCart, Modifier.weight(1f), onRequests)
+                    HomeStatCard("گروی", growyRequestCount, Icons.Default.Key, Modifier.weight(1f), onRequests)
+                    HomeStatCard("کرایه", rentRequestCount, Icons.Default.Search, Modifier.weight(1f), onRequests)
+                }
+            }
+        }
+        item {
+            Button(onClick = onProperties, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Business, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("مدیریت املاک")
+            }
+        }
+        item {
+            OutlinedButton(onClick = onRequests, modifier = Modifier.fillMaxWidth()) {
+                Text("مدیریت تقاضاها")
+            }
+        }
+        item {
+            OutlinedButton(onClick = onMatch, modifier = Modifier.fillMaxWidth()) {
+                Icon(Icons.Default.Search, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("جستجو و تطبیق هوشمند")
+            }
+        }
     }
 }
+
 @Composable
-private fun HomeCount(title: String, count: String, modifier: Modifier) {
-    Card(modifier) { Column(Modifier.padding(16.dp)) { Text(count, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary); Text(title) } }
+private fun HomeStatCard(
+    title: String,
+    count: Int,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    modifier: Modifier,
+    onClick: () -> Unit
+) {
+    Card(
+        modifier = modifier.clickable(onClick = onClick),
+        shape = RoundedCornerShape(18.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 6.dp, vertical = 12.dp),
+            horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(7.dp)
+        ) {
+            Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(23.dp))
+            Text(homeToPersianDigits(count.toString()), fontSize = 23.sp, fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary)
+            Text(title, fontSize = 12.sp, maxLines = 1, fontWeight = FontWeight.Medium)
+        }
+    }
 }
 @Composable
 private fun HomeRecords(modifier: Modifier, title: String, rows: List<List<String>>, action: String, onAdd: () -> Unit) {
