@@ -288,7 +288,9 @@ private fun RahnamaWorkingApp() {
                         listingType = homeMapListing(v[0]),
                         propertyType = "other",
                         budgetMin = homeToEnglishDigits(v[10]).trim().toDoubleOrNull(),
-                        maxMonthlyRent = homeToEnglishDigits(v[11]).trim().toDoubleOrNull(),
+                        budgetMax = homeToEnglishDigits(v[11]).trim().toDoubleOrNull(),
+                        maxMonthlyRent = homeToEnglishDigits(v[12]).trim().toDoubleOrNull(),
+                        desiredGrowyAmount = homeToEnglishDigits(v[13]).trim().toDoubleOrNull(),
                         province = "",
                         bedroomsMin = homeToEnglishDigits(v[4]).trim().toIntOrNull(),
                         kitchenRequired = homeNullableYesNo(v[5]),
@@ -296,7 +298,7 @@ private fun RahnamaWorkingApp() {
                         kotahRequired = homeNullableYesNo(v[7]),
                         electricityRequired = homeNullableYesNo(v[8]),
                         borewellRequired = homeNullableYesNo(v[9]),
-                        notes = v[12].trim().ifBlank { null }
+                        notes = v[14].trim().ifBlank { null }
                     )
                     viewModel.saveRequest(clientDraft, requestDraft) { result ->
                         result.fold(
@@ -1349,13 +1351,14 @@ private fun HomeDropdownField(label: String, selected: String, options: List<Str
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeRequestEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
-    val values = remember { mutableStateListOf("خرید", "", "", "", "", "", "", "", "", "", "", "", "") }
+    val values = remember { mutableStateListOf("خرید", "", "", "", "", "مهم نیست", "مهم نیست", "مهم نیست", "مهم نیست", "مهم نیست", "", "", "", "", "") }
+    val requestType = values[0]
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("ثبت تقاضای مشتری", fontWeight = FontWeight.Bold) },
         text = {
             LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(9.dp)) {
-                item { RequestDropdownField("نوع تقاضا", values[0], listOf("خرید", "کرایه", "گروی")) { values[0] = it } }
+                item { RequestDropdownField("نوع تقاضا", values[0], listOf("خریدار", "کرایه", "گروی")) { values[0] = it } }
                 item { OutlinedTextField(values[1], { values[1] = it }, label = { Text("نام *") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
                 item { OutlinedTextField(values[2], { values[2] = homeFilterPhoneInput(it) }, label = { Text("شماره اول *") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
                 item { OutlinedTextField(values[3], { values[3] = homeFilterPhoneInput(it) }, label = { Text("شماره دوم") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
@@ -1365,9 +1368,17 @@ private fun HomeRequestEntryDialog(onDismiss: () -> Unit, onSave: (List<String>)
                 item { RequestDropdownField("کوته", values[7], listOf("مهم نیست", "دارد", "ندارد")) { values[7] = it } }
                 item { RequestDropdownField("برق", values[8], listOf("مهم نیست", "دارد", "ندارد")) { values[8] = it } }
                 item { RequestDropdownField("برمه", values[9], listOf("مهم نیست", "دارد", "ندارد")) { values[9] = it } }
-                item { OutlinedTextField(values[10], { values[10] = it }, label = { Text("حداقل بودجه") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-                item { OutlinedTextField(values[11], { values[11] = it }, label = { Text("حداکثر کرایه ماهانه") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
-                item { OutlinedTextField(values[12], { values[12] = it }, label = { Text("توضیحات بیشتر") }, modifier = Modifier.fillMaxWidth(), minLines = 3) }
+                if (requestType == "خریدار") {
+                    item { OutlinedTextField(values[10], { values[10] = it }, label = { Text("حداقل بودجه خرید") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                    item { OutlinedTextField(values[11], { values[11] = it }, label = { Text("حداکثر بودجه خرید") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                }
+                if (requestType == "کرایه") {
+                    item { OutlinedTextField(values[12], { values[12] = it }, label = { Text("حداکثر کرایه ماهانه قابل پرداخت") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                }
+                if (requestType == "گروی") {
+                    item { OutlinedTextField(values[13], { values[13] = it }, label = { Text("مبلغ گروی موجود") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                }
+                item { OutlinedTextField(values[14], { values[14] = it }, label = { Text("توضیحات بیشتر") }, modifier = Modifier.fillMaxWidth(), minLines = 3) }
             }
         },
         confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
@@ -1411,11 +1422,19 @@ private fun validateSimpleRequestForm(v: List<String>): String? {
         return parsed
     }
     return try {
-        number(10, "حداقل بودجه")
-        number(11, "حداکثر کرایه ماهانه")
+        val type = v[0]
         val rooms = homeToEnglishDigits(v[4]).trim()
         if (rooms.isNotBlank() && (rooms.toIntOrNull() == null || rooms.toInt() < 0)) {
             return "تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
+        }
+        when (type) {
+            "خریدار", "خرید" -> {
+                val min = number(10, "حداقل بودجه خرید")
+                val max = number(11, "حداکثر بودجه خرید")
+                if (min != null && max != null && min > max) return "حداقل بودجه خرید نمی‌تواند از حداکثر بودجه بیشتر باشد."
+            }
+            "کرایه" -> number(12, "حداکثر کرایه ماهانه")
+            "گروی" -> number(13, "مبلغ گروی موجود")
         }
         null
     } catch (e: IllegalArgumentException) {
