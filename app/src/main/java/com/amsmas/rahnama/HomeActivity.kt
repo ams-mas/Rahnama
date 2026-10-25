@@ -62,6 +62,8 @@ private fun RahnamaWorkingApp() {
     var tab by remember { mutableIntStateOf(0) }
     var propertyListingFilter by remember { mutableStateOf<String?>(null) }
     var requestListingFilter by remember { mutableStateOf<String?>(null) }
+    var showPropertyArchive by remember { mutableStateOf(false) }
+    var showRequestArchive by remember { mutableStateOf(false) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
     var editingPerson by remember { mutableStateOf<PersonEntity?>(null) }
@@ -142,8 +144,9 @@ private fun RahnamaWorkingApp() {
             )
             1 -> HomeRecords(Modifier.padding(padding),
                 if (propertyListingFilter == null) "مدیریت املاک" else "املاک ${homeListingType(propertyListingFilter!!)}",
-                properties.filter { propertyListingFilter == null || (it.listingType == propertyListingFilter && it.status == "available") }.map {
+                properties.filter { (propertyListingFilter == null || it.listingType == propertyListingFilter) && ((it.status != "available") == showPropertyArchive) }.map {
                 listOf(
+                    "__RAHNAMA_RECORD__:P:${it.id}:${it.status}",
                     it.propertyCode,
                     homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
                     it.province + "، " + it.city + (it.district?.let { district -> "، " + district } ?: ""),
@@ -167,11 +170,12 @@ private fun RahnamaWorkingApp() {
                     it.areaValue?.let { area -> "مساحت: " + area } ?: "",
                     it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
-            }, "＋ ثبت ملک") { form = "property" }
+            }, "＋ ثبت ملک", onAdd = { form = "property" }, archiveMode = showPropertyArchive, onArchiveModeChange = { showPropertyArchive = it }, onStatusChange = { type, id, status -> viewModel.updatePropertyStatus(id, status) { result -> result.onFailure { alert = "تغییر وضعیت ملک انجام نشد." } } })
             2 -> HomeRecords(Modifier.padding(padding),
                 if (requestListingFilter == null) "تقاضاهای مشتریان" else "تقاضای ${homeListingType(requestListingFilter!!)}",
-                requests.filter { requestListingFilter == null || it.listingType == requestListingFilter }.map {
+                allRequests.filter { (requestListingFilter == null || it.listingType == requestListingFilter) && ((it.requestStatus != "active") == showRequestArchive) }.map {
                 listOf(
+                    "__RAHNAMA_RECORD__:R:${it.id}:${it.requestStatus}",
                     homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
                     it.province + (it.city?.let { city -> "، " + city } ?: ""),
                     "بودجه: " + (it.budgetMin?.toLong()?.toString() ?: "—") + " تا " + (it.budgetMax?.toLong()?.toString() ?: "—"),
@@ -185,7 +189,7 @@ private fun RahnamaWorkingApp() {
                     it.requestedAddressType?.let { addressType -> "آدرس مورد نظر: " + addressType } ?: "",
                     it.notes ?: ""
                 )
-            }, "＋ ثبت تقاضا") { form = "request" }
+            }, "＋ ثبت تقاضا", onAdd = { form = "request" }, archiveMode = showRequestArchive, onArchiveModeChange = { showRequestArchive = it }, onStatusChange = { type, id, status -> viewModel.updateRequestStatus(id, status) { result -> result.onFailure { alert = "تغییر وضعیت تقاضا انجام نشد." } } })
             3 -> HomePeople(
                 Modifier.padding(padding),
                 people = people,
