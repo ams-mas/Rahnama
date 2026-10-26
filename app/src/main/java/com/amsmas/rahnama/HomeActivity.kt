@@ -695,15 +695,6 @@ private fun HomeRecords(
                                             }
                                         }
                                     }
-                                    OutlinedButton(
-                                        onClick = { /* editing is wired in the next step */ },
-                                        modifier = Modifier.fillMaxWidth(),
-                                        enabled = false
-                                    ) {
-                                        Icon(Icons.Default.Edit, contentDescription = null)
-                                        Spacer(Modifier.width(6.dp))
-                                        Text("ویرایش مشخصات (به‌زودی)")
-                                    }
                                 }
                             }
                         }
