@@ -116,6 +116,7 @@ private fun RahnamaWorkingApp() {
     var showRequestArchive by remember { mutableStateOf(false) }
     var form by remember { mutableStateOf("") }
     var selectedPerson by remember { mutableStateOf<PersonEntity?>(null) }
+    var editingProperty by remember { mutableStateOf<PropertyEntity?>(null) }
     var editingPerson by remember { mutableStateOf<PersonEntity?>(null) }
     var selectedPersonForCall by remember { mutableStateOf<PersonEntity?>(null) }
     var alert by remember { mutableStateOf<String?>(null) }
@@ -217,7 +218,7 @@ private fun RahnamaWorkingApp() {
                     } ?: "",
                     it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
-            }, "＋ ثبت ملک", onAdd = { form = "property" }, archiveMode = showPropertyArchive, onArchiveModeChange = { showPropertyArchive = it }, onStatusChange = { type, id, status -> viewModel.updatePropertyStatus(id, status) { result -> result.onFailure { alert = "تغییر وضعیت ملک انجام نشد." } } })
+            }, "＋ ثبت ملک", onAdd = { form = "property" }, archiveMode = showPropertyArchive, onArchiveModeChange = { showPropertyArchive = it }, onStatusChange = { type, id, status -> viewModel.updatePropertyStatus(id, status) { result -> result.onFailure { alert = "تغییر وضعیت ملک انجام نشد." } } }, onEditProperty = { id -> editingProperty = properties.firstOrNull { it.id == id } })
             2 -> HomeRecords(Modifier.padding(padding),
                 if (requestListingFilter == null) "تقاضاهای مشتریان" else "تقاضای ${homeListingType(requestListingFilter!!)}",
                 allRequests.filter { (requestListingFilter == null || it.listingType == requestListingFilter) && ((it.requestStatus != "active") == showRequestArchive) }.map {
@@ -360,6 +361,20 @@ private fun RahnamaWorkingApp() {
                             onFailure = { alert = "ذخیره تقاضا ناموفق بود؛ اطلاعات را بررسی کنید." }
                         )
                     }
+                }
+            }
+        )
+    }
+    editingProperty?.let { property ->
+        PropertyEditDialog(
+            property = property,
+            onDismiss = { editingProperty = null },
+            onSave = { updated ->
+                viewModel.updateProperty(updated) { result ->
+                    result.fold(
+                        onSuccess = { editingProperty = null; alert = "مشخصات ملک با موفقیت تغییر کرد." },
+                        onFailure = { alert = "ذخیره تغییرات ناموفق بود. اطلاعات را بررسی کنید." }
+                    )
                 }
             }
         )
@@ -587,7 +602,8 @@ private fun HomeRecords(
     onAdd: () -> Unit,
     archiveMode: Boolean,
     onArchiveModeChange: (Boolean) -> Unit,
-    onStatusChange: (String, Long, String) -> Unit
+    onStatusChange: (String, Long, String) -> Unit,
+    onEditProperty: (Long) -> Unit = {}
 ) {
     var expandedStatusRecord by remember { mutableStateOf<String?>(null) }
     var expandedPropertyRecord by remember { mutableStateOf<Long?>(null) }
@@ -646,6 +662,14 @@ private fun HomeRecords(
                                             detail.startsWith("توضیحات") || detail.startsWith("یادداشت") -> "توضیحات"
                                             else -> "سایر مشخصات"
                                         }
+                                    }
+                                    OutlinedButton(
+                                        onClick = { recordId?.let(onEditProperty) },
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("ویرایش مشخصات")
                                     }
                                     groups.forEach { (groupTitle, groupItems) ->
                                         HorizontalDivider()
