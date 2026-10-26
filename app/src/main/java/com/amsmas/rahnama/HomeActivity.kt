@@ -304,7 +304,7 @@ private fun RahnamaWorkingApp() {
                             else -> null
                         },
                         landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
-                        neighborWallSides = v[22].trim().toIntOrNull(), areaValue = homeToEnglishDigits(when (v[3]) { "باغ", "زمین", "تعمیر" -> v[38]; "آپارتمان", "دکان" -> v[39]; else -> "" }).trim().toDoubleOrNull(),
+                        neighborWallSides = v[22].trim().toIntOrNull(), areaValue = homeToEnglishDigits(when (v[3]) { "باغ", "زمین", "تعمیر" -> v[38]; "آپارتمان", "دکان" -> v[39]; else -> "" }).trim().toDoubleOrNull(), areaUnit = v[44].ifBlank { null },
                         description = v[24].trim().ifBlank { null }, constructionType = null,
                         propertyTypeDetails = homeBuildPropertyExtraDetails(v), kotahAvailable = homeNullableYesNo(v[26])
                     )
@@ -1294,7 +1294,7 @@ private data class PropertyFormField(val index: Int, val label: String, val opti
 @Composable
 private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
     // Common fields retain their existing indexes; type-specific details are stored as JSON in propertyTypeDetails.
-    val values = remember { mutableStateListOf<String>().also { state -> repeat(44) { state.add("") } } }
+    val values = remember { mutableStateListOf<String>().also { state -> repeat(45) { state.add("") } } }
     val propertyType = values[3]
     val listingType = values[4]
     val yesNo = listOf("بلی", "نخیر", "نامشخص")
@@ -1312,7 +1312,8 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
         when (propertyType) {
             "باغ" -> {
                 add(PropertyFormField(37, "آدرس باغ"))
-                add(PropertyFormField(38, "مساحت باغ"))
+                add(PropertyFormField(38, "مقدار مساحت باغ"))
+                add(PropertyFormField(44, "واحد مساحت باغ", listOf("بسوه", "جریب", "متر مربع")))
                 add(PropertyFormField(39, "نوع سند ملکیت", listOf("شرعی", "عرفی", "قباله", "بدون سند", "نامشخص")))
                 add(PropertyFormField(40, "تعداد درخت‌ها"))
                 add(PropertyFormField(41, "نوع درخت‌ها"))
@@ -1332,7 +1333,8 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                 add(PropertyFormField(15, "آشپزخانه دارد؟", yesNo))
                 add(PropertyFormField(18, "مهمان‌خانه دارد؟", yesNo))
                 add(PropertyFormField(26, "کوته دارد؟", yesNo))
-                add(PropertyFormField(38, "متراژ زمین"))
+                add(PropertyFormField(38, "مقدار متراژ زمین"))
+                add(PropertyFormField(44, "واحد متراژ زمین", listOf("بسوه", "جریب", "متر مربع")))
                 add(PropertyFormField(39, "متراژ ساختمان"))
                 add(PropertyFormField(21, "دیوار دارد؟", yesNo))
                 if (values[21] == "بلی") {
@@ -1357,7 +1359,8 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
             }
             "زمین" -> {
                 add(PropertyFormField(37, "نوع زمین", listOf("زراعتی", "مسکونی")))
-                add(PropertyFormField(38, "مساحت زمین"))
+                add(PropertyFormField(38, "مقدار مساحت زمین"))
+                add(PropertyFormField(44, "واحد مساحت زمین", listOf("بسوه", "جریب", "متر مربع")))
                 add(PropertyFormField(9, "شماره زمین"))
                 add(PropertyFormField(21, "دیوار دارد؟", yesNo))
                 if (values[21] == "بلی") {
@@ -1426,7 +1429,7 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                             if (field.index == 3) {
                                 for (index in 9..10) values[index] = ""
                                 for (index in 14..26) values[index] = ""
-                                for (index in 37..43) values[index] = ""
+                                for (index in 37..44) values[index] = ""
                             }
                             if (field.index == 4) {
                                 if (selected != "فروشی") { values[27] = ""; values[28] = "" }
@@ -1605,7 +1608,7 @@ private fun homeBuildPropertyExtraDetails(v: List<String>): String? {
         34 to "growyHasMonthlyRent", 35 to "growyMonthlyRent", 36 to "dealNotes",
         37 to "typeField1", 38 to "typeField2", 39 to "typeField3",
         40 to "wallLeftOwnership", 41 to "wallRightOwnership",
-        42 to "wallFrontOwnership", 43 to "wallBackOwnership"
+        42 to "wallFrontOwnership", 43 to "wallBackOwnership", 44 to "landAreaUnit"
     )
     val json = org.json.JSONObject()
     labels.forEach { (index, key) -> if (v.getOrNull(index).orEmpty().isNotBlank()) json.put(key, v[index].trim()) }
