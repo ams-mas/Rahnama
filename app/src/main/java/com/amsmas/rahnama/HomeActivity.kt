@@ -209,8 +209,12 @@ private fun RahnamaWorkingApp() {
                     it.hasOwnWall?.let { value -> "دیوار از خود: " + homeYesNoText(value) } ?: "",
                     it.neighborWallSides?.let { sides -> "طرف دیوار همسایه: " + sides } ?: "",
                     it.constructionType?.let { type -> "نوع تعمیر: " + type } ?: "",
-                    it.propertyTypeDetails?.let { details -> "مشخصات: " + details } ?: "",
-                    it.areaValue?.let { area -> "مساحت: " + area } ?: "",
+                    it.propertyTypeDetails?.let { details -> homeFormatPropertyDetails(details) } ?: "",
+                    it.areaValue?.let { area ->
+                        val areaText = if (area % 1.0 == 0.0) area.toLong().toString() else area.toString()
+                        "مساحت: " + homeToPersianDigits(areaText) +
+                            (it.areaUnit?.takeIf { unit -> unit.isNotBlank() }?.let { unit -> " " + unit } ?: "")
+                    } ?: "",
                     it.description?.let { description -> "توضیحات: " + description } ?: ""
                 )
             }, "＋ ثبت ملک", onAdd = { form = "property" }, archiveMode = showPropertyArchive, onArchiveModeChange = { showPropertyArchive = it }, onStatusChange = { type, id, status -> viewModel.updatePropertyStatus(id, status) { result -> result.onFailure { alert = "تغییر وضعیت ملک انجام نشد." } } })
@@ -1630,6 +1634,31 @@ fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, 
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } })
 }
 
+private fun homeFormatPropertyDetails(raw: String): String {
+    val labels = linkedMapOf(
+        "saleDiscountAllowed" to "تخفیف در فروش", "saleMinimumPrice" to "حداقل قیمت فروش",
+        "rentDiscountAllowed" to "تخفیف در کرایه", "rentMinimumPrice" to "حداقل کرایه",
+        "growyDuration" to "مدت گروی", "growyDiscountAllowed" to "تخفیف در گروی",
+        "growyMinimumAmount" to "حداقل مبلغ گروی", "growyHasMonthlyRent" to "کرایه ماهانه همراه گروی",
+        "growyMonthlyRent" to "مبلغ کرایه ماهانه", "dealNotes" to "یادداشت معامله",
+        "typeField1" to "مشخصات ملک", "typeField2" to "جزئیات ملک", "typeField3" to "سایر مشخصات",
+        "wallLeftOwnership" to "مالکیت دیوار چپ", "wallRightOwnership" to "مالکیت دیوار راست",
+        "wallFrontOwnership" to "مالکیت دیوار پیش‌رو", "wallBackOwnership" to "مالکیت دیوار عقب",
+        "landAreaUnit" to "واحد مساحت", "propertySpecificNotes" to "توضیحات اختصاصی ملک",
+        "propertyNumber" to "شماره ملک", "sunExposure" to "آفتاب‌گیری",
+        "allLeftOwnership" to "دیوار چپ", "allRightOwnership" to "دیوار راست",
+        "allFrontOwnership" to "دیوار پیش‌رو", "allBackOwnership" to "دیوار عقب"
+    )
+    return try {
+        val json = org.json.JSONObject(raw)
+        labels.mapNotNull { (key, label) ->
+            if (!json.has(key) || json.isNull(key)) null
+            else json.optString(key).trim().takeIf { it.isNotBlank() }?.let { value -> "$label: $value" }
+        }.joinToString("\n")
+    } catch (_: Exception) {
+        raw.takeIf { it.isNotBlank() }?.let { "توضیحات اضافی: $it" }.orEmpty()
+    }
+}
 private fun homeBuildPropertyExtraDetails(v: List<String>): String? {
     val labels = mapOf(
         27 to "saleDiscountAllowed", 28 to "saleMinimumPrice",
