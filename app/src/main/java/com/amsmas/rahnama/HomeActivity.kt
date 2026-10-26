@@ -607,17 +607,50 @@ private fun HomeRecords(
 ) {
     var expandedStatusRecord by remember { mutableStateOf<String?>(null) }
     var expandedPropertyRecord by remember { mutableStateOf<Long?>(null) }
-    Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            FilterChip(selected = !archiveMode, onClick = { onArchiveModeChange(false) }, label = { Text("فعال") }, modifier = Modifier.weight(1f))
-            FilterChip(selected = archiveMode, onClick = { onArchiveModeChange(true) }, label = { Text("بایگانی / غیرفعال") }, modifier = Modifier.weight(1f))
+    var searchQuery by remember { mutableStateOf("") }
+    var archiveMenuExpanded by remember { mutableStateOf(false) }
+    val filteredRows = remember(rows, searchQuery) {
+        val term = homeToEnglishDigits(searchQuery.trim())
+        if (term.isBlank()) rows else rows.filter { row ->
+            homeToEnglishDigits(row.joinToString(" ")).contains(term, ignoreCase = true)
         }
-        Button(onClick = onAdd, modifier = Modifier.fillMaxWidth()) { Text(action) }
-        if (rows.isEmpty()) {
-            Text(if (archiveMode) "در بایگانی موردی ثبت نشده است." else "هنوز مورد فعالی ثبت نشده است.")
-        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            items(rows) { row ->
+    }
+    Column(modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, fontSize = 21.sp, fontWeight = FontWeight.Bold)
+        Box {
+            OutlinedButton(
+                onClick = { archiveMenuExpanded = true },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (archiveMode) "بایگانی / غیرفعال" else "فعال")
+                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.ArrowDropDown, contentDescription = "انتخاب وضعیت")
+            }
+            DropdownMenu(expanded = archiveMenuExpanded, onDismissRequest = { archiveMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text("فعال") }, onClick = { onArchiveModeChange(false); archiveMenuExpanded = false })
+                DropdownMenuItem(text = { Text("بایگانی / غیرفعال") }, onClick = { onArchiveModeChange(true); archiveMenuExpanded = false })
+            }
+        }
+        if (recordRowsAreProperties(rows)) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "جستجو") },
+                label = { Text("جستجو بر اساس نام مالک، کد، آدرس یا مشخصات ملک") },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) IconButton(onClick = { searchQuery = "" }) {
+                        Icon(Icons.Default.Close, contentDescription = "پاک‌کردن جستجو")
+                    }
+                }
+            )
+        }
+        Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp)) { Text(action) }
+        if (filteredRows.isEmpty()) {
+            Text(if (searchQuery.isNotBlank()) "ملکی با این مشخصات پیدا نشد." else if (archiveMode) "در بایگانی موردی ثبت نشده است." else "هنوز مورد فعالی ثبت نشده است.")
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+            items(filteredRows) { row ->
                 val marker = row.firstOrNull()?.takeIf { it.startsWith("__RAHNAMA_RECORD__:") }
                 val parts = marker?.removePrefix("__RAHNAMA_RECORD__:")?.split(":").orEmpty()
                 val recordType = parts.getOrNull(0).orEmpty()
@@ -644,7 +677,7 @@ private fun HomeRecords(
                             verticalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             summaryLines.forEachIndexed { index, text ->
-                                Text(text, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
+                                Text(text, fontSize = if (recordType == "P") 14.sp else 16.sp, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
                             }
                             if (recordType == "P") {
                                 Text(
