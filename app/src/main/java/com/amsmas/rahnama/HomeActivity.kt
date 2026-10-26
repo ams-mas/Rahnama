@@ -663,7 +663,9 @@ private fun HomeRecords(
                                         "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی",
                                         "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه", "یادداشت معامله"
                                     )
-                                    val detailLines = visibleLines.filterNot { it in summaryLines && it !in propertyPriceLines }
+                                    val detailLines = visibleLines
+                                        .filterNot { it in summaryLines && it !in propertyPriceLines }
+                                        .flatMap { detail -> detail.lines().map { it.trim() }.filter { it.isNotBlank() } }
                                         .filter { detail ->
                                             val label = detail.substringBefore(":").trim()
                                             when {
