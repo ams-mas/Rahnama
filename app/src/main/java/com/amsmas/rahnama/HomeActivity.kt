@@ -658,13 +658,22 @@ private fun HomeRecords(
                                         val label = detail.substringBefore(":").trim()
                                         when {
                                             label in setOf("آدرس", "شماره نقشه", "موقعیت", "ولایت", "شهر", "ناحیه", "گذر", "شماره ملک", "شماره موقعیت روی نقشه") -> "موقعیت و آدرس"
-                                            label in setOf("قیمت", "کرایه ماهانه", "مبلغ گروی", "تخفیف در فروش", "حداقل قیمت فروش", "تخفیف در کرایه", "حداقل کرایه", "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی", "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه", "یادداشت معامله") -> "قیمت و معامله"
                                             label in setOf("مساحت", "مقدار مساحت", "واحد مساحت", "تعداد اتاق", "آشپزخانه", "برق", "برمه", "مهمان‌خانه", "ورودی مهمان‌خانه", "کوته", "آفتاب‌گیری") -> "مساحت و امکانات"
-                                            label in setOf("توضیحات", "توضیحات اختصاصی ملک", "یادداشت", "شرح") -> "توضیحات"
+                                            label in setOf("قیمت", "کرایه ماهانه", "مبلغ گروی", "تخفیف در فروش", "حداقل قیمت فروش", "تخفیف در کرایه", "حداقل کرایه", "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی", "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه", "یادداشت معامله") -> "قیمت و معامله"
                                             label in setOf("نوع تعمیر", "نوع تعمیر/ساختمان", "وضعیت زمین", "دیوار از خود", "طرف دیوار همسایه", "مالکیت دیوار چپ", "مالکیت دیوار راست", "مالکیت دیوار پیش‌رو", "مالکیت دیوار عقب", "مشخصات ملک", "جزئیات ملک", "سایر مشخصات") -> "مشخصات ملک"
+                                            label in setOf("توضیحات", "توضیحات اختصاصی ملک", "یادداشت", "شرح") -> "توضیحات"
                                             else -> "سایر مشخصات"
                                         }
                                     }
+                                    val groupOrder = listOf(
+                                        "موقعیت و آدرس",
+                                        "مشخصات ملک",
+                                        "مساحت و امکانات",
+                                        "قیمت و معامله",
+                                        "توضیحات",
+                                        "سایر مشخصات"
+                                    )
+                                    val orderedGroups = groups.entries.sortedBy { groupOrder.indexOf(it.key).let { index -> if (index < 0) Int.MAX_VALUE else index } }
                                     OutlinedButton(
                                         onClick = { recordId?.let(onEditProperty) },
                                         modifier = Modifier.fillMaxWidth()
@@ -673,9 +682,16 @@ private fun HomeRecords(
                                         Spacer(Modifier.width(6.dp))
                                         Text("ویرایش مشخصات")
                                     }
-                                    groups.forEach { (groupTitle, groupItems) ->
+                                    orderedGroups.forEach { entry ->
+                                        val groupTitle = entry.key
+                                        val groupItems = entry.value
                                         HorizontalDivider()
-                                        Text(groupTitle, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        Text(
+                                            groupTitle,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.primary,
+                                            style = MaterialTheme.typography.titleSmall
+                                        )
                                         FlowRow(
                                             modifier = Modifier.fillMaxWidth(),
                                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -683,16 +699,32 @@ private fun HomeRecords(
                                             maxItemsInEachRow = 2
                                         ) {
                                             groupItems.forEach { detail ->
+                                                val hasLabel = detail.contains(":")
+                                                val label = if (hasLabel) detail.substringBefore(":").trim() else ""
+                                                val value = if (hasLabel) detail.substringAfter(":").trim() else detail
                                                 Surface(
                                                     modifier = Modifier.fillMaxWidth(0.48f),
                                                     shape = RoundedCornerShape(10.dp),
                                                     color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
                                                 ) {
-                                                    Text(
-                                                        detail,
+                                                    Column(
                                                         modifier = Modifier.padding(10.dp),
-                                                        style = MaterialTheme.typography.bodyMedium
-                                                    )
+                                                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                                                    ) {
+                                                        if (label.isNotBlank()) {
+                                                            Text(
+                                                                label,
+                                                                style = MaterialTheme.typography.labelMedium,
+                                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                                fontWeight = FontWeight.SemiBold
+                                                            )
+                                                        }
+                                                        Text(
+                                                            value,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            fontWeight = FontWeight.Medium
+                                                        )
+                                                    }
                                                 }
                                             }
                                         }
