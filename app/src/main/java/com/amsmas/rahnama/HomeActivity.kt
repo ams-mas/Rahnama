@@ -306,7 +306,7 @@ private fun RahnamaWorkingApp() {
                         landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
                         neighborWallSides = v[22].trim().toIntOrNull(), areaValue = v[23].trim().toDoubleOrNull(),
                         description = v[24].trim().ifBlank { null }, constructionType = null,
-                        propertyTypeDetails = v[25].trim().ifBlank { null }, kotahAvailable = homeNullableYesNo(v[26])
+                        propertyTypeDetails = homeBuildPropertyExtraDetails(v), kotahAvailable = homeNullableYesNo(v[26])
                     )
                     viewModel.saveProperty(ownerDraft, propertyDraft, homeJalaliYear()) { result ->
                         result.fold(
@@ -1293,72 +1293,124 @@ private data class PropertyFormField(val index: Int, val label: String, val opti
 
 @Composable
 private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) -> Unit) {
-    val values = remember { mutableStateListOf<String>().also { state -> repeat(27) { state.add("") } } }
+    // Common fields retain their existing indexes; type-specific details are stored as JSON in propertyTypeDetails.
+    val values = remember { mutableStateListOf<String>().also { state -> repeat(44) { state.add("") } } }
     val propertyType = values[3]
     val listingType = values[4]
-    val yesNo = listOf("دارد", "ندارد", "نامشخص")
+    val yesNo = listOf("بلی", "نخیر", "نامشخص")
+    val direction = listOf("چپه", "راسته", "نامشخص")
     val fields = buildList {
-        add(PropertyFormField(0, "نام صاحب ملک *"))
-        add(PropertyFormField(1, "شماره تماس اول *"))
-        add(PropertyFormField(2, "شماره تماس دوم"))
-        add(PropertyFormField(3, "نوع ملک *", listOf("تعمیر", "آپارتمان", "زمین", "دکان", "مارکیت", "باغ")))
+        add(PropertyFormField(0, "اسم مالک *"))
+        add(PropertyFormField(1, "شماره تماس ۱ *"))
+        add(PropertyFormField(2, "شماره تماس ۲"))
+        add(PropertyFormField(3, "نوع ملک *", listOf("باغ", "تعمیر", "آپارتمان", "زمین", "دکان", "مارکیت")))
         add(PropertyFormField(4, "نوع معامله *", listOf("فروشی", "کرایی", "گروی")))
         add(PropertyFormField(5, "ولایت *"))
         add(PropertyFormField(6, "شهر *"))
         add(PropertyFormField(7, "ناحیه / گذر"))
-        add(PropertyFormField(8, "آدرس"))
-        add(PropertyFormField(9, "شماره ملک / شماره موقعیت"))
-        add(PropertyFormField(10, "چپه یا راسته", listOf("چپه", "راسته", "نامشخص")))
-        if (listingType != "کرایی") add(PropertyFormField(11, "قیمت"))
-        if (listingType == "کرایی" || listingType == "گروی") add(PropertyFormField(12, "کرایه ماهانه"))
-        if (listingType == "گروی") add(PropertyFormField(13, "شرایط گروی", listOf("اهل سنت", "اهل تشیع", "نامشخص")))
+        add(PropertyFormField(8, "آدرس عمومی"))
         when (propertyType) {
-            "زمین" -> {
-                add(PropertyFormField(20, "نوع زمین", listOf("زمین خالی", "چهار دیواری")))
-                add(PropertyFormField(21, "دیوار از خود دارد؟", yesNo))
-                add(PropertyFormField(22, "تعداد طرف دیوار همسایه", listOf("0", "1", "2", "3")))
-                add(PropertyFormField(23, "مساحت زمین"))
-                add(PropertyFormField(25, "مشخصات بیشتر زمین"))
+            "باغ" -> {
+                add(PropertyFormField(37, "آدرس باغ"))
+                add(PropertyFormField(38, "مساحت باغ"))
+                add(PropertyFormField(39, "نوع سند ملکیت", listOf("شرعی", "عرفی", "قباله", "بدون سند", "نامشخص")))
+                add(PropertyFormField(40, "تعداد درخت‌ها"))
+                add(PropertyFormField(41, "نوع درخت‌ها"))
+                add(PropertyFormField(42, "نیاز به آب برای آبیاری؟", yesNo))
+                if (values[42] == "بلی") add(PropertyFormField(43, "منبع آب"))
+                add(PropertyFormField(21, "دیوار دارد؟", yesNo))
+                if (values[21] == "بلی") add(PropertyFormField(22, "تعداد دیوارهای همسایه", listOf("0", "1", "2", "3")))
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(10, "آفتاب‌رخ", direction))
+                add(PropertyFormField(25, "مشخصات بیشتر باغ"))
             }
             "تعمیر" -> {
-                add(PropertyFormField(14, "تعداد اتاق"))
-                add(PropertyFormField(15, "آشپزخانه", yesNo))
-                add(PropertyFormField(16, "برق", yesNo))
-                add(PropertyFormField(17, "برمه آب", yesNo))
-                add(PropertyFormField(18, "مهمان خانه", yesNo))
-                if (values[18] == "دارد") add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
-                add(PropertyFormField(26, "کوته", yesNo))
+                add(PropertyFormField(9, "شماره نمره"))
+                add(PropertyFormField(10, "آفتاب‌رخ", direction))
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(14, "تعداد اتاق‌ها"))
+                add(PropertyFormField(15, "آشپزخانه دارد؟", yesNo))
+                add(PropertyFormField(18, "مهمان‌خانه دارد؟", yesNo))
+                add(PropertyFormField(26, "کوته دارد؟", yesNo))
+                add(PropertyFormField(38, "متراژ زمین"))
+                add(PropertyFormField(39, "متراژ ساختمان"))
+                add(PropertyFormField(21, "دیوار دارد؟", yesNo))
+                if (values[21] == "بلی") {
+                    add(PropertyFormField(40, "مالکیت دیوار چپ", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(41, "مالکیت دیوار راست", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(42, "مالکیت دیوار پیش‌رو", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(43, "مالکیت دیوار پشت‌سر", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                }
                 add(PropertyFormField(25, "مشخصات بیشتر تعمیر"))
             }
             "آپارتمان" -> {
-                add(PropertyFormField(14, "تعداد اتاق"))
-                add(PropertyFormField(15, "آشپزخانه", yesNo))
-                add(PropertyFormField(16, "برق", yesNo))
-                add(PropertyFormField(17, "برمه آب", yesNo))
-                add(PropertyFormField(18, "مهمان خانه", yesNo))
-                if (values[18] == "دارد") add(PropertyFormField(19, "ورودی مهمان خانه", listOf("جداگانه", "از داخل تعمیر", "نامشخص")))
-                add(PropertyFormField(26, "کوته", yesNo))
-                add(PropertyFormField(23, "مساحت"))
+                add(PropertyFormField(9, "شماره نمره"))
+                add(PropertyFormField(37, "شماره واحد"))
+                add(PropertyFormField(38, "طبقه"))
+                add(PropertyFormField(14, "تعداد اتاق‌ها"))
+                add(PropertyFormField(15, "آشپزخانه دارد؟", yesNo))
+                add(PropertyFormField(18, "مهمان‌خانه دارد؟", yesNo))
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(10, "آفتاب‌رخ", direction))
+                add(PropertyFormField(39, "مساحت آپارتمان"))
                 add(PropertyFormField(25, "مشخصات بیشتر آپارتمان"))
             }
-            "باغ" -> {
-                add(PropertyFormField(20, "وضعیت زمین", listOf("زمین خالی", "چهار دیواری", "باغ دارای تعمیر")))
-                add(PropertyFormField(21, "دیوار از خود دارد؟", yesNo))
-                add(PropertyFormField(22, "تعداد طرف دیوار همسایه", listOf("0", "1", "2", "3")))
-                add(PropertyFormField(23, "مساحت زمین"))
-                add(PropertyFormField(16, "برق", yesNo))
-                add(PropertyFormField(17, "برمه آب", yesNo))
-                add(PropertyFormField(25, "مشخصات بیشتر باغ"))
+            "زمین" -> {
+                add(PropertyFormField(37, "نوع زمین", listOf("زراعتی", "مسکونی")))
+                add(PropertyFormField(38, "مساحت زمین"))
+                add(PropertyFormField(9, "شماره زمین"))
+                add(PropertyFormField(21, "دیوار دارد؟", yesNo))
+                if (values[21] == "بلی") {
+                    add(PropertyFormField(40, "مالکیت دیوار چپ", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(41, "مالکیت دیوار راست", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(42, "مالکیت دیوار پیش‌رو", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                    add(PropertyFormField(43, "مالکیت دیوار پشت‌سر", listOf("از مالک", "از همسایه", "مشترک", "نامشخص")))
+                }
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(17, "برمه آب دارد؟", yesNo))
+                add(PropertyFormField(25, "مشخصات بیشتر زمین"))
             }
-            "دکان", "مارکیت" -> {
-                add(PropertyFormField(16, "برق", yesNo))
-                add(PropertyFormField(17, "برمه آب", yesNo))
-                add(PropertyFormField(23, "مساحت"))
-                add(PropertyFormField(25, "مشخصات بیشتر ملک"))
+            "دکان" -> {
+                add(PropertyFormField(37, "آدرس دکان"))
+                add(PropertyFormField(38, "شماره دکان"))
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(39, "متراژ دکان"))
+                add(PropertyFormField(25, "مشخصات بیشتر دکان"))
             }
-            else -> add(PropertyFormField(25, "مشخصات بیشتر ملک"))
+            "مارکیت" -> {
+                add(PropertyFormField(37, "تعداد دکان‌ها"))
+                add(PropertyFormField(17, "برمه دارد؟", yesNo))
+                add(PropertyFormField(16, "برق دارد؟", yesNo))
+                add(PropertyFormField(38, "ساختمان دارد؟", yesNo))
+                if (values[38] == "بلی") add(PropertyFormField(39, "توضیحات ساختمان"))
+                add(PropertyFormField(10, "آفتاب‌رخ", direction))
+                add(PropertyFormField(25, "مشخصات بیشتر مارکیت"))
+            }
         }
-        add(PropertyFormField(24, "توضیحات بیشتر"))
+        when (listingType) {
+            "فروشی" -> {
+                add(PropertyFormField(11, "قیمت پیشنهادی فروش *"))
+                add(PropertyFormField(27, "تخفیف‌پذیر است؟", yesNo))
+                if (values[27] == "بلی") add(PropertyFormField(28, "حداقل قیمت قابل قبول *"))
+            }
+            "کرایی" -> {
+                add(PropertyFormField(12, "قیمت کرایه ماهانه *"))
+                add(PropertyFormField(29, "تخفیف‌پذیر است؟", yesNo))
+                if (values[29] == "بلی") add(PropertyFormField(30, "حداقل کرایه قابل قبول *"))
+                add(PropertyFormField(36, "مشخصات بیشتر معامله"))
+            }
+            "گروی" -> {
+                add(PropertyFormField(11, "مبلغ گروی *"))
+                add(PropertyFormField(31, "مدت گروی"))
+                add(PropertyFormField(32, "تخفیف‌پذیر است؟", yesNo))
+                if (values[32] == "بلی") add(PropertyFormField(33, "حداقل مبلغ قابل قبول گروی *"))
+                add(PropertyFormField(34, "ملک کرایه ماهانه هم دارد؟", yesNo))
+                if (values[34] == "بلی") add(PropertyFormField(35, "مبلغ کرایه ماهانه"))
+                add(PropertyFormField(13, "شرایط گروی", listOf("اهل سنت", "اهل تشیع", "نامشخص")))
+                add(PropertyFormField(36, "مشخصات بیشتر معامله"))
+            }
+        }
+        add(PropertyFormField(24, "توضیحات عمومی"))
     }
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1370,28 +1422,24 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
                 fields.forEach { field ->
                     if (field.options != null) {
                         HomeDropdownField(field.label, values[field.index], field.options) { selected ->
-                            when (field.index) {
-                                3 -> {
-                                    values[3] = selected
-                                    for (index in 14..26) values[index] = ""
-                                }
-                                4 -> {
-                                    values[4] = selected
-                                    if (selected == "کرایی") values[11] = ""
-                                    if (selected == "فروشی") values[12] = ""
-                                    if (selected != "گروی") values[13] = ""
-                                }
-                                18 -> {
-                                    values[18] = selected
-                                    if (selected != "دارد") values[19] = ""
-                                }
-                                else -> values[field.index] = selected
+                            values[field.index] = selected
+                            if (field.index == 3) {
+                                for (index in 9..10) values[index] = ""
+                                for (index in 14..26) values[index] = ""
+                                for (index in 37..43) values[index] = ""
+                            }
+                            if (field.index == 4) {
+                                if (selected != "فروشی") { values[27] = ""; values[28] = "" }
+                                if (selected != "کرایی") { values[29] = ""; values[30] = "" }
+                                if (selected != "گروی") { for (index in 31..36) values[index] = "" }
                             }
                         }
                     } else {
-                        OutlinedTextField(values[field.index], {
-                            values[field.index] = if (field.label.contains("شماره تماس")) homeFilterPhoneInput(it) else it
-                        }, label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                        OutlinedTextField(
+                            values[field.index],
+                            { values[field.index] = if (field.label.contains("شماره تماس")) homeFilterPhoneInput(it) else it },
+                            label = { Text(field.label) }, modifier = Modifier.fillMaxWidth(), singleLine = true
+                        )
                     }
                 }
             }
@@ -1548,6 +1596,25 @@ fun HomeEntryDialog(title: String, fields: List<String>, onDismiss: () -> Unit, 
         confirmButton = { Button(onClick = { onSave(values.toList()) }) { Text("ذخیره") } },
         dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } })
 }
+
+private fun homeBuildPropertyExtraDetails(v: List<String>): String? {
+    val labels = mapOf(
+        27 to "saleDiscountAllowed", 28 to "saleMinimumPrice",
+        29 to "rentDiscountAllowed", 30 to "rentMinimumPrice",
+        31 to "growyDuration", 32 to "growyDiscountAllowed", 33 to "growyMinimumAmount",
+        34 to "growyHasMonthlyRent", 35 to "growyMonthlyRent", 36 to "dealNotes",
+        37 to "typeField1", 38 to "typeField2", 39 to "typeField3",
+        40 to "wallLeftOwnership", 41 to "wallRightOwnership",
+        42 to "wallFrontOwnership", 43 to "wallBackOwnership"
+    )
+    val json = org.json.JSONObject()
+    labels.forEach { (index, key) -> if (v.getOrNull(index).orEmpty().isNotBlank()) json.put(key, v[index].trim()) }
+    if (v.getOrNull(25).orEmpty().isNotBlank()) json.put("propertySpecificNotes", v[25].trim())
+    if (v.getOrNull(10).orEmpty().isNotBlank()) json.put("sunExposure", v[10].trim())
+    if (v.getOrNull(9).orEmpty().isNotBlank()) json.put("propertyNumber", v[9].trim())
+    return json.toString().takeIf { json.length() > 0 }
+}
+
 private fun validatePropertyForm(v: List<String>): String? {
     val listingType = v[4]
     if (listingType == "کرایی" && v[12].isBlank()) return "مقدار کرایه ماهانه ضروری است."
