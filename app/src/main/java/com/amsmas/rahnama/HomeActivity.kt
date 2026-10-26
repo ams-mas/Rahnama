@@ -1551,6 +1551,91 @@ private fun PropertyEntryDialog(onDismiss: () -> Unit, onSave: (List<String>) ->
     )
 }
 
+@Composable
+private fun PropertyEditDialog(
+    property: PropertyEntity,
+    onDismiss: () -> Unit,
+    onSave: (PropertyEntity) -> Unit
+) {
+    val values = remember(property.id) {
+        mutableStateListOf(
+            property.province,
+            property.city,
+            property.district.orEmpty(),
+            property.address.orEmpty(),
+            property.mapLocationNumber.orEmpty(),
+            property.directionPosition.orEmpty(),
+            property.areaValue?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty(),
+            property.areaUnit.orEmpty(),
+            property.priceAmount?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty(),
+            property.monthlyRent?.let { if (it % 1.0 == 0.0) it.toLong().toString() else it.toString() }.orEmpty(),
+            property.bedrooms?.toString().orEmpty(),
+            property.description.orEmpty()
+        )
+    }
+    var error by remember { mutableStateOf<String?>(null) }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("ویرایش مشخصات ملک", fontWeight = FontWeight.Bold) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.heightIn(max = 520.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                item { Text("کد ملک: ${property.propertyCode}", fontWeight = FontWeight.SemiBold, color = MaterialTheme.colorScheme.primary) }
+                item { OutlinedTextField(values[0], { values[0] = it }, label = { Text("ولایت") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[1], { values[1] = it }, label = { Text("شهر") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[2], { values[2] = it }, label = { Text("ناحیه / گذر") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[3], { values[3] = it }, label = { Text("آدرس تشریحی") }, modifier = Modifier.fillMaxWidth()) }
+                item { OutlinedTextField(values[4], { values[4] = it }, label = { Text("شماره نقشه") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[5], { values[5] = it }, label = { Text("موقعیت") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[6], { values[6] = homeToEnglishDigits(it) }, label = { Text("مقدار مساحت") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { HomeDropdownField("واحد مساحت", values[7], listOf("بسوه", "جریب", "متر مربع")) { values[7] = it } }
+                item { OutlinedTextField(values[8], { values[8] = homeToEnglishDigits(it) }, label = { Text("قیمت فروش / مبلغ گروی (افغانی)") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[9], { values[9] = homeToEnglishDigits(it) }, label = { Text("کرایه ماهانه (افغانی)") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[10], { values[10] = homeToEnglishDigits(it) }, label = { Text("تعداد اتاق") }, modifier = Modifier.fillMaxWidth(), singleLine = true) }
+                item { OutlinedTextField(values[11], { values[11] = it }, label = { Text("توضیحات") }, modifier = Modifier.fillMaxWidth(), minLines = 2) }
+                if (error != null) item { Text(error!!, color = MaterialTheme.colorScheme.error) }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val area = values[6].trim().takeIf { it.isNotBlank() }?.let { homeToEnglishDigits(it).toDoubleOrNull() }
+                val price = values[8].trim().takeIf { it.isNotBlank() }?.let { homeToEnglishDigits(it).toDoubleOrNull() }
+                val rent = values[9].trim().takeIf { it.isNotBlank() }?.let { homeToEnglishDigits(it).toDoubleOrNull() }
+                val rooms = values[10].trim().takeIf { it.isNotBlank() }?.let { homeToEnglishDigits(it).toIntOrNull() }
+                if (values[0].isBlank() || values[1].isBlank()) {
+                    error = "ولایت و شهر ضروری است."
+                } else if ((values[6].isNotBlank() && area == null) ||
+                    (values[8].isNotBlank() && price == null) ||
+                    (values[9].isNotBlank() && rent == null) ||
+                    (values[10].isNotBlank() && rooms == null) ||
+                    listOf(area, price, rent).any { it != null && it < 0 } ||
+                    (rooms != null && rooms < 0)
+                ) {
+                    error = "مساحت، قیمت، کرایه و تعداد اتاق باید مقدار عددی معتبر و غیرمنفی داشته باشند."
+                } else {
+                    onSave(property.copy(
+                        province = values[0].trim(),
+                        city = values[1].trim(),
+                        district = values[2].trim().ifBlank { null },
+                        address = values[3].trim().ifBlank { null },
+                        mapLocationNumber = values[4].trim().ifBlank { null },
+                        directionPosition = values[5].trim().ifBlank { null },
+                        areaValue = area,
+                        areaUnit = values[7].trim().ifBlank { null },
+                        priceAmount = price,
+                        monthlyRent = rent,
+                        bedrooms = rooms,
+                        description = values[11].trim().ifBlank { null }
+                    ))
+                }
+            }) { Text("ذخیره تغییرات") }
+        },
+        dismissButton = { TextButton(onClick = onDismiss) { Text("لغو") } }
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun HomeDropdownField(label: String, selected: String, options: List<String>, onSelected: (String) -> Unit) {
