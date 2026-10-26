@@ -23,6 +23,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
@@ -30,12 +32,20 @@ import com.amsmas.rahnama.data.*
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
+private val RahnamaFontFamily = FontFamily(
+    Font(R.font.vazirmatn_regular, FontWeight.Normal),
+    Font(R.font.vazirmatn_medium, FontWeight.Medium),
+    Font(R.font.vazirmatn_semibold, FontWeight.SemiBold),
+    Font(R.font.vazirmatn_bold, FontWeight.Bold)
+)
+
 class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         setContent {
             MaterialTheme(
+                typography = Typography(defaultFontFamily = RahnamaFontFamily),
                 shapes = Shapes(
                     small = RoundedCornerShape(12.dp),
                     medium = RoundedCornerShape(16.dp),
