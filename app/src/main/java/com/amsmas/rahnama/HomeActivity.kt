@@ -1637,8 +1637,15 @@ private fun validatePropertyForm(v: List<String>): String? {
 
     return try {
         listOf(11 to "قیمت / مبلغ گروی", 12 to "کرایه ماهانه", 28 to "حداقل قیمت فروش",
-            30 to "حداقل کرایه", 33 to "حداقل مبلغ گروی", 35 to "کرایه ماهانه گروی",
-            38 to "مساحت / تعداد", 39 to "متراژ / طبقه", 40 to "تعداد درخت‌ها").forEach { number(it.first, it.second) }
+            30 to "حداقل کرایه", 33 to "حداقل مبلغ گروی", 35 to "کرایه ماهانه گروی").forEach { number(it.first, it.second) }
+        when (v[3]) {
+            "باغ" -> { number(38, "مساحت باغ"); number(40, "تعداد درخت‌ها") }
+            "تعمیر" -> { number(38, "متراژ زمین"); number(39, "متراژ ساختمان") }
+            "آپارتمان" -> { number(38, "طبقه"); number(39, "مساحت آپارتمان") }
+            "زمین" -> number(38, "مساحت زمین")
+            "دکان" -> number(39, "متراژ دکان")
+            "مارکیت" -> number(37, "تعداد دکان‌ها")
+        }
         val bedrooms = homeToEnglishDigits(v[14]).trim()
         if (bedrooms.isNotBlank() && (bedrooms.toIntOrNull() == null || bedrooms.toInt() < 0)) {
             return "تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
