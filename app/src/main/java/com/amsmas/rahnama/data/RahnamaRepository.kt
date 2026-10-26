@@ -15,6 +15,7 @@ class RahnamaRepository(private val dao: RahnamaDao) {
     suspend fun findPersonByPhone(phone: String): PersonEntity? = dao.findPersonByPhone(phone)
     suspend fun findOtherPersonByPhone(phone: String, personId: Long): PersonEntity? = dao.findOtherPersonByPhone(phone, personId)
     suspend fun insertPerson(person: PersonEntity): Long = dao.insertPerson(person)
+    suspend fun updateProperty(property: PropertyEntity) = dao.updateProperty(property)
     suspend fun updatePerson(person: PersonEntity) = dao.updatePerson(person)
     suspend fun updatePersonContactDetails(personId: Long, alternatePhone: String?, address: String?) =
         dao.updatePersonContactDetails(personId, alternatePhone, address)
