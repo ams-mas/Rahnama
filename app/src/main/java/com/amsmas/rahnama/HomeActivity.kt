@@ -655,11 +655,13 @@ private fun HomeRecords(
                                 if (isExpanded) {
                                     val detailLines = visibleLines.filterNot { it in summaryLines }
                                     val groups = detailLines.groupBy { detail ->
+                                        val label = detail.substringBefore(":").trim()
                                         when {
-                                            detail.startsWith("آدرس:") || detail.startsWith("شماره نقشه:") || detail.startsWith("موقعیت:") -> "موقعیت"
-                                            detail.startsWith("قیمت:") || detail.startsWith("کرایه") || detail.startsWith("مبلغ گروی:") || detail.startsWith("تخفیف") || detail.startsWith("حداقل") -> "قیمت و معامله"
-                                            detail.startsWith("مساحت:") || detail.startsWith("تعداد اتاق:") || detail.startsWith("آشپزخانه:") || detail.startsWith("برق:") || detail.startsWith("برمه:") || detail.startsWith("مهمان‌خانه:") || detail.startsWith("کوته:") -> "مساحت و امکانات"
-                                            detail.startsWith("توضیحات") || detail.startsWith("یادداشت") -> "توضیحات"
+                                            label in setOf("آدرس", "شماره نقشه", "موقعیت", "ولایت", "شهر", "ناحیه", "گذر", "شماره ملک", "شماره موقعیت روی نقشه") -> "موقعیت و آدرس"
+                                            label in setOf("قیمت", "کرایه ماهانه", "مبلغ گروی", "تخفیف در فروش", "حداقل قیمت فروش", "تخفیف در کرایه", "حداقل کرایه", "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی", "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه", "یادداشت معامله") -> "قیمت و معامله"
+                                            label in setOf("مساحت", "مقدار مساحت", "واحد مساحت", "تعداد اتاق", "آشپزخانه", "برق", "برمه", "مهمان‌خانه", "ورودی مهمان‌خانه", "کوته", "آفتاب‌گیری") -> "مساحت و امکانات"
+                                            label in setOf("توضیحات", "توضیحات اختصاصی ملک", "یادداشت", "شرح") -> "توضیحات"
+                                            label in setOf("نوع تعمیر", "نوع تعمیر/ساختمان", "وضعیت زمین", "دیوار از خود", "طرف دیوار همسایه", "مالکیت دیوار چپ", "مالکیت دیوار راست", "مالکیت دیوار پیش‌رو", "مالکیت دیوار عقب", "مشخصات ملک", "جزئیات ملک", "سایر مشخصات") -> "مشخصات ملک"
                                             else -> "سایر مشخصات"
                                         }
                                     }
