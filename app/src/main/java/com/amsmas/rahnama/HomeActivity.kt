@@ -647,7 +647,7 @@ private fun HomeRecords(
                 }
             )
         }
-        Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp)) { Text(action) }
+        if (!title.contains("املاک")) { Button(onClick = onAdd, modifier = Modifier.fillMaxWidth().heightIn(min = 42.dp)) { Text(action) } }
         if (filteredRows.isEmpty()) {
             Text(if (searchQuery.isNotBlank()) "ملکی با این مشخصات پیدا نشد." else if (archiveMode) "در بایگانی موردی ثبت نشده است." else "هنوز مورد فعالی ثبت نشده است.")
         } else LazyColumn(verticalArrangement = Arrangement.spacedBy(6.dp)) {
