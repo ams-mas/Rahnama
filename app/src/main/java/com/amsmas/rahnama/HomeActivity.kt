@@ -45,7 +45,25 @@ class HomeActivity : ComponentActivity() {
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         setContent {
             MaterialTheme(
-                typography = Typography(defaultFontFamily = RahnamaFontFamily),
+                typography = Typography().let { typography ->
+                    typography.copy(
+                        displayLarge = typography.displayLarge.copy(fontFamily = RahnamaFontFamily),
+                        displayMedium = typography.displayMedium.copy(fontFamily = RahnamaFontFamily),
+                        displaySmall = typography.displaySmall.copy(fontFamily = RahnamaFontFamily),
+                        headlineLarge = typography.headlineLarge.copy(fontFamily = RahnamaFontFamily),
+                        headlineMedium = typography.headlineMedium.copy(fontFamily = RahnamaFontFamily),
+                        headlineSmall = typography.headlineSmall.copy(fontFamily = RahnamaFontFamily),
+                        titleLarge = typography.titleLarge.copy(fontFamily = RahnamaFontFamily),
+                        titleMedium = typography.titleMedium.copy(fontFamily = RahnamaFontFamily),
+                        titleSmall = typography.titleSmall.copy(fontFamily = RahnamaFontFamily),
+                        bodyLarge = typography.bodyLarge.copy(fontFamily = RahnamaFontFamily),
+                        bodyMedium = typography.bodyMedium.copy(fontFamily = RahnamaFontFamily),
+                        bodySmall = typography.bodySmall.copy(fontFamily = RahnamaFontFamily),
+                        labelLarge = typography.labelLarge.copy(fontFamily = RahnamaFontFamily),
+                        labelMedium = typography.labelMedium.copy(fontFamily = RahnamaFontFamily),
+                        labelSmall = typography.labelSmall.copy(fontFamily = RahnamaFontFamily)
+                    )
+                },
                 shapes = Shapes(
                     small = RoundedCornerShape(12.dp),
                     medium = RoundedCornerShape(16.dp),
