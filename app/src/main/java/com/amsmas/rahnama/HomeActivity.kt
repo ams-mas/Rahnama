@@ -9,6 +9,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,6 +23,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -44,6 +46,11 @@ class HomeActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         window.decorView.layoutDirection = android.view.View.LAYOUT_DIRECTION_RTL
         setContent {
+            var showOpeningLogo by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                kotlinx.coroutines.delay(1_500)
+                showOpeningLogo = false
+            }
             MaterialTheme(
                 typography = Typography().let { typography ->
                     typography.copy(
@@ -70,7 +77,21 @@ class HomeActivity : ComponentActivity() {
                     large = RoundedCornerShape(22.dp)
                 )
             ) {
-                RahnamaWorkingApp()
+                if (showOpeningLogo) {
+                    Box(
+                        modifier = Modifier.fillMaxSize().background(androidx.compose.ui.graphics.Color.White),
+                        contentAlignment = androidx.compose.ui.Alignment.Center
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.rahnama_logo),
+                            contentDescription = "Rahnama logo",
+                            modifier = Modifier.size(180.dp),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Fit
+                        )
+                    }
+                } else {
+                    RahnamaWorkingApp()
+                }
             }
         }
     }
