@@ -294,7 +294,7 @@ private fun RahnamaWorkingApp() {
                         province = v[5].trim(), city = v[6].trim(),
                         district = v[7].trim().ifBlank { null }, address = v[8].trim().ifBlank { null },
                         mapLocationNumber = v[9].trim().ifBlank { null }, directionPosition = v[10].trim().ifBlank { null },
-                        priceAmount = v[11].trim().toDoubleOrNull(), monthlyRent = v[12].trim().toDoubleOrNull(),
+                        priceAmount = homeToEnglishDigits(v[11]).trim().toDoubleOrNull(), monthlyRent = if (v[4] == "گروی" && v[34] == "بلی") homeToEnglishDigits(v[35]).trim().toDoubleOrNull() else homeToEnglishDigits(v[12]).trim().toDoubleOrNull(),
                         growyCondition = homeMapGrowy(v[13]), bedrooms = v[14].trim().toIntOrNull(),
                         kitchenAvailable = homeNullableYesNo(v[15]), electricityAvailable = homeNullableYesNo(v[16]),
                         borewellAvailable = homeNullableYesNo(v[17]), guestHouseAvailable = homeNullableYesNo(v[18]),
@@ -304,7 +304,7 @@ private fun RahnamaWorkingApp() {
                             else -> null
                         },
                         landBoundaryType = v[20].trim().ifBlank { null }, hasOwnWall = homeNullableYesNo(v[21]),
-                        neighborWallSides = v[22].trim().toIntOrNull(), areaValue = v[23].trim().toDoubleOrNull(),
+                        neighborWallSides = v[22].trim().toIntOrNull(), areaValue = homeToEnglishDigits(when (v[3]) { "باغ", "زمین", "تعمیر" -> v[38]; "آپارتمان", "دکان" -> v[39]; else -> "" }).trim().toDoubleOrNull(),
                         description = v[24].trim().ifBlank { null }, constructionType = null,
                         propertyTypeDetails = homeBuildPropertyExtraDetails(v), kotahAvailable = homeNullableYesNo(v[26])
                     )
@@ -1617,38 +1617,42 @@ private fun homeBuildPropertyExtraDetails(v: List<String>): String? {
 
 private fun validatePropertyForm(v: List<String>): String? {
     val listingType = v[4]
-    if (listingType == "کرایی" && v[12].isBlank()) return "مقدار کرایه ماهانه ضروری است."
-    if (listingType != "کرایی" && v[11].isBlank()) return "قیمت فروش یا مبلغ گروی ضروری است."
+    if (listingType == "فروشی" && v[11].isBlank()) return "قیمت پیشنهادی فروش ضروری است."
+    if (listingType == "کرایی" && v[12].isBlank()) return "قیمت کرایه ماهانه ضروری است."
+    if (listingType == "گروی" && v[11].isBlank()) return "مبلغ گروی ضروری است."
+    if (listingType == "فروشی" && v[27] == "بلی" && v[28].isBlank()) return "حداقل قیمت قابل قبول ضروری است."
+    if (listingType == "کرایی" && v[29] == "بلی" && v[30].isBlank()) return "حداقل کرایه قابل قبول ضروری است."
+    if (listingType == "گروی" && v[32] == "بلی" && v[33].isBlank()) return "حداقل مبلغ گروی قابل قبول ضروری است."
+    if (listingType == "گروی" && v[34] == "بلی" && v[35].isBlank()) return "مبلغ کرایه ماهانه ضروری است."
 
     fun number(index: Int, label: String): Double? {
-        val raw = v[index].trim()
+        val raw = homeToEnglishDigits(v.getOrElse(index) { "" }).trim()
         if (raw.isBlank()) return null
         val value = raw.toDoubleOrNull()
         if (value == null || !value.isFinite() || value < 0) {
-            throw IllegalArgumentException("$label باید عدد صفر یا بزرگ‌تر باشد.")
+            throw IllegalArgumentException("${label} باید عدد صفر یا بزرگ‌تر باشد.")
         }
         return value
     }
 
     return try {
-        number(11, "قیمت")
-        number(12, "کرایه ماهانه")
-        val bedrooms = v[14].trim()
+        listOf(11 to "قیمت / مبلغ گروی", 12 to "کرایه ماهانه", 28 to "حداقل قیمت فروش",
+            30 to "حداقل کرایه", 33 to "حداقل مبلغ گروی", 35 to "کرایه ماهانه گروی",
+            38 to "مساحت / تعداد", 39 to "متراژ / طبقه", 40 to "تعداد درخت‌ها").forEach { number(it.first, it.second) }
+        val bedrooms = homeToEnglishDigits(v[14]).trim()
         if (bedrooms.isNotBlank() && (bedrooms.toIntOrNull() == null || bedrooms.toInt() < 0)) {
             return "تعداد اتاق باید عدد صحیح صفر یا بزرگ‌تر باشد."
         }
-        val neighborSides = v[22].trim()
-        if (neighborSides.isNotBlank() && (neighborSides.toIntOrNull() == null || neighborSides.toInt() !in 0..3)) {
-            return "تعداد طرف‌های دیوار همسایه باید عدد صحیح بین ۰ تا ۳ باشد."
+        val areaIndex = when (v[3]) { "باغ", "زمین", "تعمیر" -> 38; "آپارتمان", "دکان" -> 39; else -> -1 }
+        if (areaIndex >= 0) {
+            val area = number(areaIndex, "مساحت")
+            if (area != null && area <= 0) return "مساحت باید بیشتر از صفر باشد."
         }
-        val area = number(23, "مساحت")
-        if (area != null && area <= 0) return "مساحت باید بیشتر از صفر باشد."
         null
     } catch (e: IllegalArgumentException) {
         e.message ?: "مقادیر عددی ملک را بررسی کنید."
     }
 }
-
 private fun validateRequestForm(v: List<String>): String? {
     fun optionalNonNegative(index: Int, label: String): Double? {
         val raw = v[index].trim()
