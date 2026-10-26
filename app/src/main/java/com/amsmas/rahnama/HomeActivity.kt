@@ -636,8 +636,48 @@ private fun HomeRecords(
                                     style = MaterialTheme.typography.labelMedium
                                 )
                                 if (isExpanded) {
-                                    visibleLines.filterNot { it in summaryLines }.forEach { detail ->
-                                        Text(detail, style = MaterialTheme.typography.bodyMedium)
+                                    val detailLines = visibleLines.filterNot { it in summaryLines }
+                                    val groups = detailLines.groupBy { detail ->
+                                        when {
+                                            detail.startsWith("آدرس:") || detail.startsWith("شماره نقشه:") || detail.startsWith("موقعیت:") -> "موقعیت"
+                                            detail.startsWith("قیمت:") || detail.startsWith("کرایه") || detail.startsWith("مبلغ گروی:") || detail.startsWith("تخفیف") || detail.startsWith("حداقل") -> "قیمت و معامله"
+                                            detail.startsWith("مساحت:") || detail.startsWith("تعداد اتاق:") || detail.startsWith("آشپزخانه:") || detail.startsWith("برق:") || detail.startsWith("برمه:") || detail.startsWith("مهمان‌خانه:") || detail.startsWith("کوته:") -> "مساحت و امکانات"
+                                            detail.startsWith("توضیحات") || detail.startsWith("یادداشت") -> "توضیحات"
+                                            else -> "سایر مشخصات"
+                                        }
+                                    }
+                                    groups.forEach { (groupTitle, groupItems) ->
+                                        HorizontalDivider()
+                                        Text(groupTitle, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                                        FlowRow(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                                            maxItemsInEachRow = 2
+                                        ) {
+                                            groupItems.forEach { detail ->
+                                                Surface(
+                                                    modifier = Modifier.fillMaxWidth(0.48f),
+                                                    shape = RoundedCornerShape(10.dp),
+                                                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.55f)
+                                                ) {
+                                                    Text(
+                                                        detail,
+                                                        modifier = Modifier.padding(10.dp),
+                                                        style = MaterialTheme.typography.bodyMedium
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    OutlinedButton(
+                                        onClick = { /* editing is wired in the next step */ },
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = false
+                                    ) {
+                                        Icon(Icons.Default.Edit, contentDescription = null)
+                                        Spacer(Modifier.width(6.dp))
+                                        Text("ویرایش مشخصات (به‌زودی)")
                                     }
                                 }
                             }
