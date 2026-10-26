@@ -191,6 +191,7 @@ private fun RahnamaWorkingApp() {
                 properties.filter { (propertyListingFilter == null || it.listingType == propertyListingFilter) && ((it.status != "available") == showPropertyArchive) }.map {
                 listOf(
                     "__RAHNAMA_RECORD__:P:${it.id}:${it.status}",
+                    "__SEARCH_OWNER__:" + (people.firstOrNull { person -> person.id == it.ownerId }?.fullName.orEmpty()),
                     it.propertyCode,
                     homePropertyType(it.propertyType) + " • " + homeListingType(it.listingType),
                     it.province + "، " + it.city + (it.district?.let { district -> "، " + district } ?: ""),
@@ -631,7 +632,7 @@ private fun HomeRecords(
                 DropdownMenuItem(text = { Text("بایگانی / غیرفعال") }, onClick = { onArchiveModeChange(true); archiveMenuExpanded = false })
             }
         }
-        if (recordRowsAreProperties(rows)) {
+        if (title.contains("املاک")) {
             OutlinedTextField(
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
@@ -660,7 +661,7 @@ private fun HomeRecords(
                 val statuses = if (recordType == "P") listOf("available", "sold", "rented", "mortgaged", "inactive") else listOf("active", "completed", "cancelled")
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        val visibleLines = row.drop(1).filter { it.isNotBlank() }
+                        val visibleLines = row.drop(1).filter { it.isNotBlank() && !it.startsWith("__SEARCH_OWNER__:") }
                         val isExpanded = recordType == "P" && expandedPropertyRecord == recordId
                         val propertyPriceLines = visibleLines.filter {
                             it.startsWith("قیمت:") || it.startsWith("کرایه ماهانه:") || it.startsWith("مبلغ گروی:")
