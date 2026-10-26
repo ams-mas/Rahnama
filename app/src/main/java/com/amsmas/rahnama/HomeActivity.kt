@@ -653,7 +653,28 @@ private fun HomeRecords(
                                     style = MaterialTheme.typography.labelMedium
                                 )
                                 if (isExpanded) {
+                                    val listingInfo = visibleLines.getOrNull(1).orEmpty()
+                                    val isForSale = listingInfo.contains("فروشی")
+                                    val isForRent = listingInfo.contains("کرایی")
+                                    val isForGrowy = listingInfo.contains("گروی")
+                                    val dealLabels = setOf(
+                                        "قیمت", "کرایه ماهانه", "مبلغ گروی", "تخفیف در فروش",
+                                        "حداقل قیمت فروش", "تخفیف در کرایه", "حداقل کرایه",
+                                        "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی",
+                                        "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه", "یادداشت معامله"
+                                    )
                                     val detailLines = visibleLines.filterNot { it in summaryLines && it !in propertyPriceLines }
+                                        .filter { detail ->
+                                            val label = detail.substringBefore(":").trim()
+                                            when {
+                                                label !in dealLabels -> true
+                                                label in setOf("قیمت", "تخفیف در فروش", "حداقل قیمت فروش") -> isForSale
+                                                label in setOf("کرایه ماهانه", "تخفیف در کرایه", "حداقل کرایه") -> isForRent
+                                                label in setOf("مبلغ گروی", "مدت گروی", "تخفیف در گروی", "حداقل مبلغ گروی", "کرایه ماهانه همراه گروی", "مبلغ کرایه ماهانه") -> isForGrowy
+                                                label == "یادداشت معامله" -> isForSale || isForRent || isForGrowy
+                                                else -> true
+                                            }
+                                        }
                                     val groups = detailLines.groupBy { detail ->
                                         val label = detail.substringBefore(":").trim()
                                         when {
