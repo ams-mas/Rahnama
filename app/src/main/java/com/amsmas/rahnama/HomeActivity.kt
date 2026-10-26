@@ -585,6 +585,7 @@ private fun HomeRecords(
     onStatusChange: (String, Long, String) -> Unit
 ) {
     var expandedStatusRecord by remember { mutableStateOf<String?>(null) }
+    var expandedPropertyRecord by remember { mutableStateOf<Long?>(null) }
     Column(modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(title, fontSize = 22.sp, fontWeight = FontWeight.Bold)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -605,8 +606,37 @@ private fun HomeRecords(
                 val statuses = if (recordType == "P") listOf("available", "sold", "rented", "mortgaged", "inactive") else listOf("active", "completed", "cancelled")
                 Card(Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
-                        row.drop(1).filter { it.isNotBlank() }.forEachIndexed { index, text ->
-                            Text(text, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
+                        val visibleLines = row.drop(1).filter { it.isNotBlank() }
+                        val isExpanded = recordType == "P" && expandedPropertyRecord == recordId
+                        val propertyPriceLines = visibleLines.filter {
+                            it.startsWith("قیمت:") || it.startsWith("کرایه ماهانه:") || it.startsWith("مبلغ گروی:")
+                        }
+                        val summaryLines = if (recordType == "P") {
+                            (visibleLines.take(3) + propertyPriceLines).distinct()
+                        } else visibleLines
+                        Column(
+                            Modifier.fillMaxWidth().then(
+                                if (recordType == "P") Modifier.clickable {
+                                    expandedPropertyRecord = if (isExpanded) null else recordId
+                                } else Modifier
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            summaryLines.forEachIndexed { index, text ->
+                                Text(text, fontWeight = if (index == 0) FontWeight.Bold else FontWeight.Normal)
+                            }
+                            if (recordType == "P") {
+                                Text(
+                                    if (isExpanded) "نمایش خلاصه" else "نمایش جزئیات بیشتر",
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                if (isExpanded) {
+                                    visibleLines.filterNot { it in summaryLines }.forEach { detail ->
+                                        Text(detail, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                }
+                            }
                         }
                         if (recordId != null && recordType in listOf("P", "R")) {
                             Text(
