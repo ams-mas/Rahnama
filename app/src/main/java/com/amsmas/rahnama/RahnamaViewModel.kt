@@ -24,6 +24,17 @@ class RahnamaViewModel(application: Application) : AndroidViewModel(application)
     val activeRequests: Flow<List<ClientRequestEntity>> = repository.activeRequests
     val allRequests: Flow<List<ClientRequestEntity>> = repository.allRequests
 
+    fun updateProperty(property: PropertyEntity, onComplete: (Result<Unit>) -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                repository.updateProperty(property)
+                onComplete(Result.success(Unit))
+            } catch (error: Exception) {
+                onComplete(Result.failure(error))
+            }
+        }
+    }
+
     fun updatePropertyStatus(propertyId: Long, status: String, onComplete: (Result<Unit>) -> Unit = {}) {
         viewModelScope.launch {
             try {
