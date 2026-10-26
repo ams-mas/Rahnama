@@ -16,6 +16,9 @@ interface RahnamaDao {
     suspend fun insertProperty(property: PropertyEntity): Long
 
     @Update
+    suspend fun updateProperty(property: PropertyEntity)
+
+    @Update
     suspend fun updatePerson(person: PersonEntity)
 
     @Query("UPDATE properties SET status = :status WHERE id = :propertyId")
