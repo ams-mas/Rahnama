@@ -577,6 +577,7 @@ private fun HomeStatCard(
         }
     }
 }
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 private fun HomeRecords(
     modifier: Modifier,
